@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Tímastjórnun",
+    "slug": "timastjornun",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "timastjornun",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Appið notar staðsetningu til að staðfesta að þú sért á vinnustað við tímaskráningu.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Appið fylgist með staðsetningu meðan þú ert innskráð(ur) til að staðfesta veru á vinnustað."
+      }
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Appið fylgist með staðsetningu meðan þú ert innskráð(ur) til að staðfesta veru á vinnustað."
+        }
+      ]
+    ]
+  }
+}

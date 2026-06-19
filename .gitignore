@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Build/output
+.next/
+out/
+dist/
+build/
+
+# Env / leyndarmál
+.env
+.env*.local
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# Diverse
+*.tsbuildinfo
+.DS_Store
