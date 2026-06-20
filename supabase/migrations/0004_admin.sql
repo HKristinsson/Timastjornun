@@ -184,7 +184,8 @@ create or replace function app.create_employee(
   p_email       text,
   p_national_id text
 ) returns employees
-language plpgsql security definer set search_path = public as $$
+-- extensions í search_path svo pgcrypto (pgp_sym_encrypt) finnist á Supabase
+language plpgsql security definer set search_path = public, extensions as $$
 declare
   v_tenant uuid := app.current_tenant_id();
   v_user   uuid := app.current_user_id();
