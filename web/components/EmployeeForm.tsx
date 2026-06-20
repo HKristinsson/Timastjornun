@@ -1,3 +1,8 @@
+"use client";
+
+import { useActionState } from "react";
+import type { EmployeeFormState } from "@/app/dashboard/employees/actions";
+
 export interface ProjectOption {
   id: string;
   project_no: string;
@@ -19,14 +24,15 @@ export default function EmployeeForm({
   defaults = {},
   isEdit = false,
 }: {
-  action: (formData: FormData) => void;
+  action: (prev: EmployeeFormState, formData: FormData) => Promise<EmployeeFormState>;
   projects: ProjectOption[];
   defaults?: EmployeeDefaults;
   isEdit?: boolean;
 }) {
   const assigned = new Set(defaults.assignedProjectIds ?? []);
+  const [state, formAction, pending] = useActionState(action, null);
   return (
-    <form action={action} className="max-w-2xl space-y-5">
+    <form action={formAction} className="max-w-2xl space-y-5">
       <div>
         <label className="mb-1 block text-sm font-medium">Nafn</label>
         <input
@@ -149,12 +155,19 @@ export default function EmployeeForm({
         </div>
       )}
 
+      {state?.error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {state.error}
+        </div>
+      )}
+
       <div className="flex gap-3">
         <button
           type="submit"
-          className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-dark"
+          disabled={pending}
+          className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
         >
-          Vista
+          {pending ? "Vista…" : "Vista"}
         </button>
         <a
           href="/dashboard/employees"

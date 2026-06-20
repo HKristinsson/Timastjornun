@@ -4,21 +4,29 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+export type EmployeeFormState = { error: string } | null;
+
 function str(v: FormDataEntryValue | null): string | null {
   const s = (v ?? "").toString().trim();
   return s === "" ? null : s;
 }
 
 function translateEmpError(msg: string): string {
-  if (msg.includes("EMAIL_EXISTS")) return "Netfangið er þegar í notkun.";
+  if (msg.includes("EMAIL_EXISTS")) return "Netfangið er þegar í notkun (hjá öðrum notanda).";
   if (msg.includes("WEAK_PASSWORD")) return "Lykilorð verður að vera a.m.k. 6 stafir.";
-  if (msg.includes("EMAIL_REQUIRED")) return "Netfang vantar — það er nauðsynlegt fyrir innskráningu.";
+  if (msg.includes("EMAIL_REQUIRED"))
+    return "Netfang vantar á starfsmanninn — það er nauðsynlegt til að búa til innskráningu. Skráðu netfang og reyndu aftur.";
   if (msg.includes("NOT_FOUND")) return "Starfsmaður fannst ekki.";
   if (msg.includes("FORBIDDEN")) return "Þú hefur ekki heimild til þessarar aðgerðar.";
+  if (msg.includes("duplicate key") && msg.includes("employee_no"))
+    return "Starfsmannanúmer er þegar í notkun.";
   return msg;
 }
 
-export async function createEmployee(formData: FormData) {
+export async function createEmployee(
+  _prev: EmployeeFormState,
+  formData: FormData
+): Promise<EmployeeFormState> {
   const supabase = await createClient();
   const password = str(formData.get("password"));
 
@@ -39,7 +47,7 @@ export async function createEmployee(formData: FormData) {
         p_email: str(formData.get("email")),
         p_national_id: str(formData.get("national_id")),
       });
-  if (error) throw new Error(translateEmpError(error.message));
+  if (error) return { error: translateEmpError(error.message) };
 
   // Úthluta verkefnum (checkbox-gildi 'project_ids')
   const projectIds = formData.getAll("project_ids").map((v) => v.toString());
@@ -55,7 +63,11 @@ export async function createEmployee(formData: FormData) {
   redirect("/dashboard/employees");
 }
 
-export async function updateEmployee(id: string, formData: FormData) {
+export async function updateEmployee(
+  id: string,
+  _prev: EmployeeFormState,
+  formData: FormData
+): Promise<EmployeeFormState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_employee", {
     p_id: id,
@@ -64,7 +76,7 @@ export async function updateEmployee(id: string, formData: FormData) {
     p_email: str(formData.get("email")),
     p_status: str(formData.get("status")),
   });
-  if (error) throw new Error(translateEmpError(error.message));
+  if (error) return { error: translateEmpError(error.message) };
 
   // Ef lykilorð er gefið → setja/breyta innskráningu starfsmanns
   const password = str(formData.get("password"));
@@ -73,7 +85,7 @@ export async function updateEmployee(id: string, formData: FormData) {
       p_employee_id: id,
       p_password: password,
     });
-    if (pwErr) throw new Error(translateEmpError(pwErr.message));
+    if (pwErr) return { error: translateEmpError(pwErr.message) };
   }
 
   const projectIds = formData.getAll("project_ids").map((v) => v.toString());
