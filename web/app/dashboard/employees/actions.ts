@@ -9,16 +9,35 @@ function str(v: FormDataEntryValue | null): string | null {
   return s === "" ? null : s;
 }
 
+function translateEmpError(msg: string): string {
+  if (msg.includes("EMAIL_EXISTS")) return "Netfangið er þegar í notkun.";
+  if (msg.includes("WEAK_PASSWORD")) return "Lykilorð verður að vera a.m.k. 6 stafir.";
+  if (msg.includes("EMAIL_REQUIRED")) return "Netfang er nauðsynlegt fyrir innskráningu.";
+  return msg;
+}
+
 export async function createEmployee(formData: FormData) {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("create_employee", {
-    p_full_name: str(formData.get("full_name")),
-    p_employee_no: str(formData.get("employee_no")),
-    p_phone: str(formData.get("phone")),
-    p_email: str(formData.get("email")),
-    p_national_id: str(formData.get("national_id")),
-  });
-  if (error) throw new Error(error.message);
+  const password = str(formData.get("password"));
+
+  // Ef lykilorð er gefið → stofna líka innskráningu (Auth-notanda)
+  const { data, error } = password
+    ? await supabase.rpc("create_employee_with_login", {
+        p_full_name: str(formData.get("full_name")),
+        p_employee_no: str(formData.get("employee_no")),
+        p_phone: str(formData.get("phone")),
+        p_email: str(formData.get("email")),
+        p_national_id: str(formData.get("national_id")),
+        p_password: password,
+      })
+    : await supabase.rpc("create_employee", {
+        p_full_name: str(formData.get("full_name")),
+        p_employee_no: str(formData.get("employee_no")),
+        p_phone: str(formData.get("phone")),
+        p_email: str(formData.get("email")),
+        p_national_id: str(formData.get("national_id")),
+      });
+  if (error) throw new Error(translateEmpError(error.message));
 
   // Úthluta verkefnum (checkbox-gildi 'project_ids')
   const projectIds = formData.getAll("project_ids").map((v) => v.toString());

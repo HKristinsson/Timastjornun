@@ -81,6 +81,26 @@ export default function EmployeeForm({
         </div>
       </div>
 
+      {!isEdit && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <label className="mb-1 block text-sm font-medium">
+            Lykilorð fyrir innskráningu{" "}
+            <span className="text-slate-400">(valfrjálst)</span>
+          </label>
+          <input
+            name="password"
+            type="text"
+            autoComplete="off"
+            placeholder="Skildu eftir autt ef starfsmaður á ekki að geta innskráð sig strax"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Ef þú setur lykilorð (a.m.k. 6 stafir) getur starfsmaðurinn strax innskráð
+            sig með <strong>netfanginu</strong> hér að ofan og þessu lykilorði.
+          </p>
+        </div>
+      )}
+
       <div>
         <label className="mb-2 block text-sm font-medium">
           Má skrá sig á verkefni
