@@ -17,12 +17,17 @@ export default function LoginPage() {
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       setError("Innskráning mistókst. Athugaðu netfang og lykilorð.");
       return;
     }
-    router.push("/dashboard");
+    // Beina eftir hlutverki: stjórnendur → stjórnborð, starfsmenn → starfsmanna-app
+    const { data: roles } = await supabase.rpc("my_roles");
+    const r: string[] = roles ?? [];
+    const isManager =
+      r.includes("admin") || r.includes("project_manager") || r.includes("payroll");
+    router.push(isManager ? "/dashboard" : "/me");
   }
 
   return (

@@ -1,0 +1,10 @@
+{
+  "name": "timastjornun-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Uppsetningar- og prófunarscript fyrir Supabase",
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
