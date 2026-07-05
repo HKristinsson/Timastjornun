@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Uppsetningar- og prófunarscript fyrir Supabase",
   "dependencies": {
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
-    "jsonwebtoken": "^9.0.2"
+    "sharp": "^0.35.3"
   }
 }
