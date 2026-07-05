@@ -9,13 +9,16 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as Notifications from "expo-notifications";
 import { supabase } from "@/lib/supabase";
 import {
   ensureForegroundPermission,
+  ensureBackgroundPermission,
   getCurrentFix,
   distanceMeters,
   type Fix,
 } from "@/lib/location";
+import { startProjectGeofence } from "@/lib/geofence";
 
 interface MyProject {
   id: string;
@@ -62,12 +65,26 @@ export default function ProjectSelect() {
       p_accuracy: fix.accuracy,
       p_note: null,
     });
-    setCheckingIn(null);
     if (error) {
+      setCheckingIn(null);
       // Server skilar skýrri villu (t.d. OUTSIDE_AREA / LOW_ACCURACY)
       Alert.alert("Ekki hægt að skrá inn", translateError(error.message));
       return;
     }
+
+    // Hefja bakgrunns-geofencing (skynjar að farið er af svæði þótt app sé lokað).
+    // Krefst "Always" staðsetningarheimildar + tilkynningaheimildar.
+    try {
+      await ensureBackgroundPermission();
+      await Notifications.requestPermissionsAsync();
+      if (p.lat != null && p.lng != null && p.radius_m != null) {
+        await startProjectGeofence(p.id, p.lat, p.lng, p.radius_m);
+      }
+    } catch {
+      // Bakgrunnsvöktun mistókst (t.d. heimild hafnað) — forgrunnsvöktun virkar samt.
+    }
+
+    setCheckingIn(null);
     router.replace("/active");
   }
 

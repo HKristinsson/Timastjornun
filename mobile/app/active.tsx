@@ -10,6 +10,7 @@ import {
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { getCurrentFix } from "@/lib/location";
+import { stopProjectGeofence } from "@/lib/geofence";
 
 interface ActiveEntry {
   id: string;
@@ -63,6 +64,7 @@ export default function Active() {
       p_time_entry_id: e.id,
       p_reason: "auto_geofence",
     });
+    await stopProjectGeofence();
     Alert.alert("Sjálfvirk útskráning", "Þú varst skráð(ur) út þar sem þú fórst af svæðinu.");
     router.replace("/home");
   }, []);
@@ -128,11 +130,13 @@ export default function Active() {
       p_accuracy: fixData?.accuracy ?? null,
       p_note: null,
     });
-    setBusy(false);
     if (error) {
+      setBusy(false);
       Alert.alert("Villa", error.message);
       return;
     }
+    await stopProjectGeofence();
+    setBusy(false);
     router.replace("/home");
   }
 

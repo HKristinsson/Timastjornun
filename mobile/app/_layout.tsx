@@ -1,5 +1,7 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+// Skráir bakgrunns-geofencing verkið (TaskManager.defineTask) við ræsingu.
+import "@/lib/geofence";
 
 export default function RootLayout() {
   return (
