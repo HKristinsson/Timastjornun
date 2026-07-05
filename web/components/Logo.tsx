@@ -1,4 +1,4 @@
-// Verkklukka-merki: staðsetningarpinni með klukku + orðmerki.
+// Tímaverk-merki: staðsetningarpinni með klukku + orðmerki.
 export function LogoMark({ size = 32, color = "#2563eb" }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
@@ -23,7 +23,7 @@ export function Logo({ light = false }: { light?: boolean }) {
           light ? "text-white" : "text-slate-900"
         }`}
       >
-        Verkklukka
+        Tímaverk
       </span>
     </span>
   );

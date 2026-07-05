@@ -1,17 +1,66 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 
 export const metadata = {
-  title: "Verkklukka — GPS-tímaskráning fyrir verkefni",
+  title: "Tímaverk — GPS-tímaskráning fyrir verkefni",
   description:
-    "Réttur tími, réttur staður. Verkklukka staðfestir tímaskráningu starfsmanna með GPS — fyrir verktaka, þrif, viðhald og allar starfsstéttir á vettvangi.",
+    "Réttur tími, réttur staður. Tímaverk staðfestir tímaskráningu starfsmanna með GPS — fyrir verktaka, þrif, viðhald og allar starfsstéttir á vettvangi.",
 };
 
-function Feature({ icon, title, text }: { icon: string; title: string; text: string }) {
+const iconProps = {
+  width: 24,
+  height: 24,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.75,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+
+const IconPin = () => (
+  <svg {...iconProps}>
+    <path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z" />
+    <circle cx="12" cy="10" r="2.5" />
+  </svg>
+);
+const IconTimer = () => (
+  <svg {...iconProps}>
+    <path d="M10 2h4" />
+    <path d="M12 14V9" />
+    <circle cx="12" cy="14" r="8" />
+    <path d="m19 7 1.4-1.4" />
+  </svg>
+);
+const IconActivity = () => (
+  <svg {...iconProps}>
+    <path d="M3 12h4l2.5 7 5-16 2.5 9H21" />
+  </svg>
+);
+const IconExport = () => (
+  <svg {...iconProps}>
+    <path d="M12 3v12" />
+    <path d="m7 12 5 5 5-5" />
+    <path d="M5 21h14" />
+  </svg>
+);
+
+function Feature({
+  icon,
+  title,
+  text,
+}: {
+  icon: ReactNode;
+  title: string;
+  text: string;
+}) {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
-      <div className="mb-3 text-2xl">{icon}</div>
-      <h3 className="mb-1 text-lg font-semibold text-slate-900">{title}</h3>
+    <div className="group rounded-2xl border border-slate-100 bg-white p-7 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-blue-100 hover:shadow-lg">
+      <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-brand transition duration-200 group-hover:bg-brand group-hover:text-white">
+        {icon}
+      </div>
+      <h3 className="mb-2 text-lg font-semibold text-slate-900">{title}</h3>
       <p className="text-sm leading-relaxed text-slate-600">{text}</p>
     </div>
   );
@@ -57,7 +106,7 @@ export default function Landing() {
               Réttur tími.<br />Réttur staður.
             </h1>
             <p className="mt-5 text-lg leading-relaxed text-slate-200">
-              Verkklukka skráir vinnutíma starfsmanna og staðfestir með GPS að þeir séu á
+              Tímaverk skráir vinnutíma starfsmanna og staðfestir með GPS að þeir séu á
               réttum vinnustað — sjálfkrafa, án pappírs og ágiskana.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -85,7 +134,7 @@ export default function Landing() {
             <h2 className="text-3xl font-semibold">Fyrir allar starfsstéttir á vettvangi</h2>
             <p className="mt-4 text-slate-600">
               Hvort sem þínir starfsmenn vinna á byggingarsvæði, við þrif, í garðyrkju, á
-              lager eða úti í mörkinni — Verkklukka hentar öllum sem þurfa að skrá tíma sinn
+              lager eða úti í mörkinni — Tímaverk hentar öllum sem þurfa að skrá tíma sinn
               og staðsetningu.
             </p>
             <ul className="mt-6 space-y-2 text-slate-700">
@@ -103,14 +152,38 @@ export default function Landing() {
       </section>
 
       {/* Eiginleikar */}
-      <section className="bg-slate-50 py-20">
+      <section className="bg-gradient-to-b from-slate-50 to-white py-24">
         <div className="mx-auto max-w-6xl px-6">
-          <h2 className="text-center text-3xl font-semibold">Allt sem þú þarft</h2>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            <Feature icon="📍" title="GPS-staðfesting" text="Starfsmaður getur aðeins skráð sig inn þegar hann er innan svæðis verkefnisins." />
-            <Feature icon="⏱️" title="Sjálfvirk útskráning" text="Fari starfsmaður af svæðinu skráir kerfið hann sjálfkrafa út — engin gleymd útskráning." />
-            <Feature icon="📊" title="Rauntíma-yfirlit" text="Sjáðu hverjir eru við vinnu, á hvaða verkefni og hvort þeir séu innan svæðis." />
-            <Feature icon="📁" title="Excel-útflutningur" text="Samþykktir tímar beint í Excel fyrir launavinnslu — með einum smelli." />
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+              Eiginleikar
+            </p>
+            <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Allt sem þú þarft</h2>
+            <p className="mt-4 text-slate-600">
+              Frá innskráningu á vettvangi til launavinnslu — Tímaverk sér um alla keðjuna.
+            </p>
+          </div>
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <Feature
+              icon={<IconPin />}
+              title="GPS-staðfesting"
+              text="Starfsmaður getur aðeins skráð sig inn þegar hann er innan svæðis verkefnisins."
+            />
+            <Feature
+              icon={<IconTimer />}
+              title="Sjálfvirk útskráning"
+              text="Fari starfsmaður af svæðinu skráir kerfið hann sjálfkrafa út — engin gleymd útskráning."
+            />
+            <Feature
+              icon={<IconActivity />}
+              title="Rauntíma-yfirlit"
+              text="Sjáðu hverjir eru við vinnu, á hvaða verkefni og hvort þeir séu innan svæðis."
+            />
+            <Feature
+              icon={<IconExport />}
+              title="Excel-útflutningur"
+              text="Samþykktir tímar beint í Excel fyrir launavinnslu — með einum smelli."
+            />
           </div>
         </div>
       </section>
@@ -153,7 +226,7 @@ export default function Landing() {
       <footer className="border-t border-slate-100 bg-white py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-slate-500 sm:flex-row">
           <Logo />
-          <p>© 2026 Reir · verkklukka.is</p>
+          <p>© 2026 Reir · timaverk.is</p>
         </div>
       </footer>
     </div>
