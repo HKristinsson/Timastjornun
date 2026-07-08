@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 interface CompanyRow {
@@ -11,7 +11,19 @@ interface CompanyRow {
   created_at: string;
   max_employees: number;
   active_employees: number;
+  active_projects: number;
   admin_email: string | null;
+}
+
+interface EmployeeRow {
+  id: string;
+  full_name: string;
+  employee_no: string;
+  email: string | null;
+  phone: string | null;
+  status: string;
+  has_login: boolean;
+  mail_inbox: boolean;
 }
 
 const field =
@@ -29,6 +41,8 @@ export default function CompaniesPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [editSeats, setEditSeats] = useState<{ id: string; value: string } | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<Record<string, EmployeeRow[]>>({});
 
   const load = useCallback(async () => {
     const { data, error } = await createClient().rpc("su_companies_overview");
@@ -43,6 +57,20 @@ export default function CompaniesPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function toggleExpand(c: CompanyRow) {
+    if (expanded === c.id) {
+      setExpanded(null);
+      return;
+    }
+    setExpanded(c.id);
+    if (!employees[c.id]) {
+      const { data } = await createClient().rpc("su_company_employees", {
+        p_company: c.id,
+      });
+      setEmployees((m) => ({ ...m, [c.id]: (data ?? []) as EmployeeRow[] }));
+    }
+  }
 
   async function create() {
     setError(null);
@@ -69,7 +97,7 @@ export default function CompaniesPage() {
       return;
     }
     setNotice(
-      `Félagið „${name.trim()}" stofnað með ${seats} sætum — admin: ${adminEmail.trim()}`
+      `Félagið „${name.trim()}" stofnað með ${seats} sætum — smelltu á „⚡ Vinna sem" til að stofna starfsmenn og verkefni fyrir það.`
     );
     setName("");
     setDomain("");
@@ -104,13 +132,15 @@ export default function CompaniesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Félög</h1>
+        <h1 className="text-xl font-semibold">Félög — yfirlit</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Félög greiða fyrir hvern starfsmann (sæti). Notaðu „Vinna sem" til að stofna
-          starfsmenn og verkefni fyrir einstök félög.
+          Félög greiða fyrir hvern starfsmann (sæti). Smelltu á félag til að sjá starfsmenn
+          og netföng þess. „⚡ Vinna sem" beinir öllu stjórnborðinu að félaginu — þá
+          stofnarðu starfsmenn, verkefni og staðsetningar fyrir það.
         </p>
       </div>
 
+      {/* Stofna nýtt félag */}
       <div className="max-w-2xl space-y-4 rounded-xl bg-white p-6 shadow-sm">
         <p className="font-semibold">Stofna nýtt félag</p>
         {error && (
@@ -177,13 +207,16 @@ export default function CompaniesPage() {
         </button>
       </div>
 
+      {/* Skjáborð: félög með útvíkkanlegum starfsmannalistum */}
       <div className="overflow-hidden rounded-xl bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
-              <th className="px-4 py-3">Félag</th>
+              <th className="w-8 px-2 py-3"></th>
+              <th className="px-2 py-3">Félag</th>
               <th className="px-4 py-3">Lén</th>
               <th className="px-4 py-3">Admin</th>
+              <th className="px-4 py-3">Verkefni</th>
               <th className="px-4 py-3">Sætanýting</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -191,67 +224,144 @@ export default function CompaniesPage() {
           <tbody>
             {companies.map((c) => {
               const pct = Math.min(100, (c.active_employees / c.max_employees) * 100);
+              const open = expanded === c.id;
+              const emps = employees[c.id];
               return (
-                <tr key={c.id} className="border-t border-slate-100">
-                  <td className="px-4 py-3 font-medium">{c.name}</td>
-                  <td className="px-4 py-3 text-slate-600">{c.domain ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-600">{c.admin_email ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    {editSeats?.id === c.id ? (
-                      <span className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min={1}
-                          value={editSeats.value}
-                          onChange={(e) =>
-                            setEditSeats({ id: c.id, value: e.target.value })
-                          }
-                          className="w-20 rounded border border-slate-300 px-2 py-1"
-                        />
-                        <button
-                          onClick={() => saveSeats(c.id)}
-                          className="rounded bg-brand px-2 py-1 text-xs font-semibold text-white"
-                        >
-                          Vista
-                        </button>
-                        <button
-                          onClick={() => setEditSeats(null)}
-                          className="text-xs text-slate-400"
-                        >
-                          Hætta
-                        </button>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() =>
-                          setEditSeats({ id: c.id, value: String(c.max_employees) })
-                        }
-                        title="Breyta sætafjölda"
-                        className="group flex w-40 items-center gap-2"
-                      >
-                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                          <span
-                            className={`block h-full rounded-full ${
-                              pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-400" : "bg-emerald-500"
-                            }`}
-                            style={{ width: `${pct}%` }}
+                <Fragment key={c.id}>
+                  <tr
+                    onClick={() => toggleExpand(c)}
+                    className="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
+                  >
+                    <td className="px-2 py-3 text-center text-slate-400">
+                      {open ? "▾" : "▸"}
+                    </td>
+                    <td className="px-2 py-3 font-medium">{c.name}</td>
+                    <td className="px-4 py-3 text-slate-600">{c.domain ?? "—"}</td>
+                    <td className="px-4 py-3 text-slate-600">{c.admin_email ?? "—"}</td>
+                    <td className="px-4 py-3">{c.active_projects}</td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      {editSeats?.id === c.id ? (
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={1}
+                            value={editSeats.value}
+                            onChange={(e) =>
+                              setEditSeats({ id: c.id, value: e.target.value })
+                            }
+                            className="w-20 rounded border border-slate-300 px-2 py-1"
                           />
+                          <button
+                            onClick={() => saveSeats(c.id)}
+                            className="rounded bg-brand px-2 py-1 text-xs font-semibold text-white"
+                          >
+                            Vista
+                          </button>
+                          <button
+                            onClick={() => setEditSeats(null)}
+                            className="text-xs text-slate-400"
+                          >
+                            Hætta
+                          </button>
                         </span>
-                        <span className="text-xs font-semibold text-slate-600 group-hover:text-brand">
-                          {c.active_employees}/{c.max_employees} ✎
-                        </span>
+                      ) : (
+                        <button
+                          onClick={() =>
+                            setEditSeats({ id: c.id, value: String(c.max_employees) })
+                          }
+                          title="Breyta sætafjölda"
+                          className="group flex w-40 items-center gap-2"
+                        >
+                          <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                            <span
+                              className={`block h-full rounded-full ${
+                                pct >= 100
+                                  ? "bg-red-500"
+                                  : pct >= 80
+                                  ? "bg-amber-400"
+                                  : "bg-emerald-500"
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </span>
+                          <span className="text-xs font-semibold text-slate-600 group-hover:text-brand">
+                            {c.active_employees}/{c.max_employees} ✎
+                          </span>
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => actAs(c)}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-brand hover:text-brand"
+                      >
+                        ⚡ Vinna sem
                       </button>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => actAs(c)}
-                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-brand hover:text-brand"
-                    >
-                      ⚡ Vinna sem
-                    </button>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                  {open && (
+                    <tr className="border-t border-slate-100 bg-slate-50/60">
+                      <td colSpan={7} className="px-6 py-4">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Starfsmenn {c.name} ({emps?.length ?? "…"})
+                        </p>
+                        {!emps ? (
+                          <p className="text-sm text-slate-400">Hleð…</p>
+                        ) : emps.length === 0 ? (
+                          <p className="text-sm text-slate-500">
+                            Engir starfsmenn — notaðu „⚡ Vinna sem" og stofnaðu þá undir
+                            Starfsmenn.
+                          </p>
+                        ) : (
+                          <table className="w-full text-sm">
+                            <thead className="text-left text-xs text-slate-400">
+                              <tr>
+                                <th className="py-1 pr-4">Nafn</th>
+                                <th className="py-1 pr-4">Nr.</th>
+                                <th className="py-1 pr-4">Netfang</th>
+                                <th className="py-1 pr-4">Sími</th>
+                                <th className="py-1 pr-4">Innskráning</th>
+                                <th className="py-1 pr-4">Póstur í appi</th>
+                                <th className="py-1">Staða</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {emps.map((e) => (
+                                <tr key={e.id} className="border-t border-slate-200/60">
+                                  <td className="py-1.5 pr-4 font-medium">{e.full_name}</td>
+                                  <td className="py-1.5 pr-4">{e.employee_no}</td>
+                                  <td className="py-1.5 pr-4 text-slate-600">
+                                    {e.email ?? "—"}
+                                  </td>
+                                  <td className="py-1.5 pr-4 text-slate-600">
+                                    {e.phone ?? "—"}
+                                  </td>
+                                  <td className="py-1.5 pr-4">
+                                    {e.has_login ? "✅" : "—"}
+                                  </td>
+                                  <td className="py-1.5 pr-4">
+                                    {e.mail_inbox ? "📬 ✅" : "—"}
+                                  </td>
+                                  <td className="py-1.5">
+                                    <span
+                                      className={
+                                        e.status === "active"
+                                          ? "text-green-600"
+                                          : "text-slate-400"
+                                      }
+                                    >
+                                      {e.status === "active" ? "Virkur" : "Óvirkur"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>
