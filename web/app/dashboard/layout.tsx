@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
 
 const nav = [
@@ -12,18 +13,32 @@ const nav = [
   { href: "/dashboard/settings", label: "Stillingar" },
 ];
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Super admin sér einnig „Félög"
+  let isSuper = false;
+  try {
+    const supabase = await createClient();
+    const { data: roles } = await supabase.rpc("my_roles");
+    isSuper = ((roles ?? []) as string[]).includes("super_admin");
+  } catch {
+    // án Supabase-tengingar: sjálfgefin valmynd
+  }
+
+  const items = isSuper
+    ? [...nav, { href: "/dashboard/companies", label: "Félög" }]
+    : nav;
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-3">
-          <span className="font-semibold text-brand">Tímastjórnun</span>
-          <nav className="flex flex-1 gap-4 text-sm">
-            {nav.map((n) => (
+          <span className="font-semibold text-brand">Tímaverk</span>
+          <nav className="flex flex-1 flex-wrap gap-4 text-sm">
+            {items.map((n) => (
               <Link
                 key={n.href}
                 href={n.href}

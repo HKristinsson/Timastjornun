@@ -8,6 +8,9 @@ import type {
   OutboundEmail,
   Group2Recipient,
   EmailAttachment,
+  Announcement,
+  SentAnnouncement,
+  AnnouncementReader,
 } from "./types";
 
 const BUCKET = "mail-attachments";
@@ -77,6 +80,63 @@ export async function listSent(): Promise<OutboundEmail[]> {
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as OutboundEmail[];
+}
+
+// Senda á marga viðtakendur (komma/semíkomma aðskilið). Eitt skeyti per viðtakanda.
+export function splitRecipients(input: string): string[] {
+  return input
+    .split(/[;,]/)
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => s.includes("@"));
+}
+
+// Hefur núverandi notandi aðgang að tölvupósti (hópur 2 eða stjórnandi)?
+export async function myMailAccess(): Promise<{
+  hasMail: boolean;
+  isManager: boolean;
+  email: string | null;
+}> {
+  const supabase = createClient();
+  const { data: session } = await supabase.auth.getUser();
+  const email = session.user?.email ?? null;
+  const [{ data: roles }, g2] = await Promise.all([
+    supabase.rpc("my_roles"),
+    email
+      ? supabase.rpc("mail_is_group2", { p_email: email })
+      : Promise.resolve({ data: false }),
+  ]);
+  const r: string[] = roles ?? [];
+  const isManager = r.includes("admin") || r.includes("project_manager");
+  return { hasMail: (g2.data as boolean) || isManager, isManager, email };
+}
+
+// --- Skilaboðaskjóða (tilkynningar með les-staðfestingu) ------------------------
+export async function listMyAnnouncements(): Promise<Announcement[]> {
+  const { data, error } = await createClient().from("v_my_announcements").select("*");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Announcement[];
+}
+
+export async function markAnnouncementRead(id: string): Promise<void> {
+  const { error } = await createClient().rpc("ann_mark_read", { p_id: id });
+  if (error) throw new Error(error.message);
+}
+
+export async function sendAnnouncement(title: string, body: string): Promise<void> {
+  const { error } = await createClient().rpc("ann_send", { p_title: title, p_body: body });
+  if (error) throw new Error(error.message);
+}
+
+export async function listSentAnnouncements(): Promise<SentAnnouncement[]> {
+  const { data, error } = await createClient().from("v_sent_announcements").select("*");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SentAnnouncement[];
+}
+
+export async function announcementReaders(id: string): Promise<AnnouncementReader[]> {
+  const { data, error } = await createClient().rpc("ann_readers", { p_id: id });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as AnnouncementReader[];
 }
 
 // --- Viðhengi -------------------------------------------------------------------

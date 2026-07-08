@@ -1,8 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { sendEmail, uploadAttachment, addOutboundAttachment } from "@/lib/mail/service";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  sendEmail,
+  uploadAttachment,
+  addOutboundAttachment,
+  splitRecipients,
+  readEmail,
+} from "@/lib/mail/service";
 
 const field =
   "w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-[15px] outline-none focus:border-brand focus:bg-white";
@@ -13,7 +19,17 @@ interface Pending {
 }
 
 export default function ComposePage() {
+  return (
+    <Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-white/70" />}>
+      <ComposeInner />
+    </Suspense>
+  );
+}
+
+function ComposeInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const forwardId = searchParams.get("fwd");
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -23,6 +39,27 @@ export default function ComposePage() {
   const [error, setError] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Áframsending: forfylla efni og texta úr upprunalega skeytinu
+  useEffect(() => {
+    if (!forwardId) return;
+    readEmail(forwardId)
+      .then((orig) => {
+        if (!orig) return;
+        setSubject((s) => s || `Fwd: ${orig.subject ?? ""}`);
+        setBody(
+          (b) =>
+            b ||
+            `\n\n---------- Áframsent skeyti ----------\nFrá: ${
+              orig.sender_name || orig.sender_email
+            } <${orig.sender_email}>\nDags: ${new Date(orig.received_at).toLocaleString(
+              "is-IS"
+            )}\nEfni: ${orig.subject ?? ""}\n\n${orig.body_text ?? ""}`
+        );
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forwardId]);
 
   function addFiles(list: FileList | null) {
     if (!list) return;
@@ -45,21 +82,31 @@ export default function ComposePage() {
 
   async function send() {
     setError(null);
+    const recipients = splitRecipients(to);
+    if (recipients.length === 0) {
+      setError("Sláðu inn a.m.k. eitt gilt netfang.");
+      return;
+    }
     setBusy(true);
     try {
-      // 1) Hlaða viðhengjum upp
+      // 1) Hlaða viðhengjum upp (einu sinni — sömu skrár fyrir alla viðtakendur)
       const uploaded: { file: File; path: string }[] = [];
       for (let i = 0; i < attachments.length; i++) {
         setProgress(`Hleð upp viðhengi ${i + 1} af ${attachments.length}…`);
         const path = await uploadAttachment(attachments[i].file);
         uploaded.push({ file: attachments[i].file, path });
       }
-      // 2) Senda skeytið
-      setProgress("Sendi skeyti…");
-      const sent = await sendEmail(to.trim(), subject.trim(), body.trim());
-      // 3) Tengja viðhengin
-      for (const u of uploaded) {
-        await addOutboundAttachment(sent.id, u.file, u.path);
+      // 2) Senda á hvern viðtakanda
+      for (let i = 0; i < recipients.length; i++) {
+        setProgress(
+          recipients.length > 1
+            ? `Sendi ${i + 1} af ${recipients.length}…`
+            : "Sendi skeyti…"
+        );
+        const sent = await sendEmail(recipients[i], subject.trim(), body.trim());
+        for (const u of uploaded) {
+          await addOutboundAttachment(sent.id, u.file, u.path);
+        }
       }
       router.push("/mail/sent");
     } catch (e) {
@@ -83,12 +130,15 @@ export default function ComposePage() {
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-slate-700">Til</label>
           <input
-            type="email"
+            type="text"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            placeholder="netfang@daemi.is"
+            placeholder="netfang@daemi.is, annad@daemi.is"
             className={field}
           />
+          <p className="mt-1 text-xs text-slate-400">
+            Margir viðtakendur: aðskildu netföng með kommu eða semíkommu.
+          </p>
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-slate-700">Efni</label>

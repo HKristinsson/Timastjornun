@@ -12,11 +12,20 @@ interface Check {
   note: string;
 }
 
+const LOCALES: { code: string; label: string }[] = [
+  { code: "is", label: "Íslenska" },
+  { code: "en", label: "English" },
+  { code: "pl", label: "Polski" },
+  { code: "lt", label: "Lietuvių" },
+  { code: "lv", label: "Latviešu" },
+];
+
 export default function MailSettingsPage() {
   const router = useRouter();
   const [checks, setChecks] = useState<Check[]>([]);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isManager, setIsManager] = useState(false);
+  const [locale, setLocale] = useState("is");
 
   useEffect(() => {
     (async () => {
@@ -27,6 +36,9 @@ export default function MailSettingsPage() {
       const { data: roles } = await supabase.rpc("my_roles");
       const r: string[] = roles ?? [];
       setIsManager(r.includes("admin") || r.includes("project_manager"));
+
+      const { data: loc } = await supabase.rpc("my_locale");
+      if (loc) setLocale(loc as string);
 
       const results: Check[] = [];
       results.push({
@@ -60,6 +72,11 @@ export default function MailSettingsPage() {
     router.push("/login");
   }
 
+  async function changeLocale(code: string) {
+    setLocale(code);
+    await createClient().rpc("set_my_locale", { p_locale: code }).then(() => {});
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-[22px] font-bold tracking-tight">Stillingar</h1>
@@ -88,6 +105,29 @@ export default function MailSettingsPage() {
           <path d="m9 18 6-6-6-6" />
         </svg>
       </Link>
+
+      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/60">
+        <p className="mb-1 font-semibold text-slate-800">Tungumál</p>
+        <p className="mb-3 text-xs text-slate-500">
+          Sjálfvirk þýðing á pósti og tilkynningum virkjast þegar þýðingarveita hefur
+          verið tengd.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {LOCALES.map((l) => (
+            <button
+              key={l.code}
+              onClick={() => changeLocale(l.code)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold ring-1 transition-colors ${
+                locale === l.code
+                  ? "bg-brand text-white ring-brand"
+                  : "bg-slate-50 text-slate-600 ring-slate-200 hover:bg-slate-100"
+              }`}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/60">
         <p className="mb-3 font-semibold text-slate-800">Kerfisstaða</p>

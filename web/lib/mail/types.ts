@@ -34,6 +34,30 @@ export interface Group2Recipient {
   created_at: string;
 }
 
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+  sender_name: string | null;
+}
+
+export interface SentAnnouncement {
+  id: string;
+  title: string;
+  body: string;
+  created_at: string;
+  total: number;
+  read_count: number;
+}
+
+export interface AnnouncementReader {
+  full_name: string;
+  email: string;
+  read_at: string | null;
+}
+
 export interface EmailAttachment {
   id: string;
   inbound_email_id: string | null;

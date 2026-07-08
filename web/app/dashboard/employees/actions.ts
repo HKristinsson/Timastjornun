@@ -20,6 +20,8 @@ function translateEmpError(msg: string): string {
   if (msg.includes("FORBIDDEN")) return "Þú hefur ekki heimild til þessarar aðgerðar.";
   if (msg.includes("duplicate key") && msg.includes("employee_no"))
     return "Starfsmannanúmer er þegar í notkun.";
+  if (msg.includes("DOMAIN_MISMATCH"))
+    return msg.replace(/^.*DOMAIN_MISMATCH:\s*/, "");
   return msg;
 }
 

@@ -217,15 +217,26 @@ export default function ReadEmailPage() {
           </div>
         </div>
       ) : (
-        <button
-          onClick={() => setReplying(true)}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-4 text-[17px] font-semibold text-white shadow-sm transition-colors hover:bg-brand-dark"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 17 4 12l5-5 M4 12h12a4 4 0 0 1 4 4v4" />
-          </svg>
-          Svara
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setReplying(true)}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand py-4 text-[16px] font-semibold text-white shadow-sm transition-colors hover:bg-brand-dark"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 17 4 12l5-5 M4 12h12a4 4 0 0 1 4 4v4" />
+            </svg>
+            Svara
+          </button>
+          <button
+            onClick={() => router.push(`/mail/compose?fwd=${email.id}`)}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-4 text-[16px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 17 5-5-5-5 M20 12H8a4 4 0 0 0-4 4v4" />
+            </svg>
+            Áframsenda
+          </button>
+        </div>
       )}
     </div>
   );

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { usePathname, useRouter } from "next/navigation";
+import { myMailAccess } from "@/lib/mail/service";
 import { LogoMark } from "@/components/Logo";
 
 function Icon({ d, active }: { d: string; active: boolean }) {
@@ -27,70 +27,82 @@ function Icon({ d, active }: { d: string; active: boolean }) {
 const ICONS = {
   inbox: "M22 12h-6l-2 3h-4l-2-3H2 M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z",
   compose: "M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
-  sent: "M22 2 11 13 M22 2 15 22l-4-9-9-4z",
-  users: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
-  settings:
-    "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.6.26 1.05.8 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
+  bell: "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0",
   clock: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 6v6l4 2",
+  more: "M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M19 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
 };
+
+// Póst-tengdar slóðir sem krefjast póst-aðgangs (hóps-2 hak eða stjórnandi)
+const MAIL_ONLY = ["/mail/compose", "/mail/sent"];
 
 export default function MailLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [isManager, setIsManager] = useState(false);
+  const router = useRouter();
+  const [access, setAccess] = useState<{ hasMail: boolean; isManager: boolean } | null>(null);
 
   useEffect(() => {
-    createClient()
-      .rpc("my_roles")
-      .then(({ data }) => {
-        const roles: string[] = data ?? [];
-        setIsManager(roles.includes("admin") || roles.includes("project_manager"));
-      });
+    myMailAccess()
+      .then((a) => setAccess(a))
+      .catch(() => setAccess({ hasMail: false, isManager: false }));
   }, []);
 
-  const nav = [
-    { href: "/mail", label: "Innhólf", icon: ICONS.inbox },
-    { href: "/mail/compose", label: "Skrifa", icon: ICONS.compose },
-    { href: "/mail/sent", label: "Sent", icon: ICONS.sent },
-    ...(isManager ? [{ href: "/mail/admin", label: "Stjórnun", icon: ICONS.users }] : []),
-    { href: "/mail/settings", label: "Stillingar", icon: ICONS.settings },
-  ];
+  // Notandi án pósts: beina póst-slóðum á tilkynningar
+  useEffect(() => {
+    if (!access || access.hasMail) return;
+    const isMailPage =
+      pathname === "/mail" ||
+      MAIL_ONLY.some((p) => pathname.startsWith(p)) ||
+      /^\/mail\/[0-9a-f-]{36}/.test(pathname);
+    if (isMailPage) router.replace("/mail/announcements");
+  }, [access, pathname, router]);
 
-  const timeHref = isManager ? "/dashboard" : "/me";
+  const timeHref = access?.isManager ? "/dashboard" : "/me";
+
+  const nav = [
+    ...(access?.hasMail
+      ? [
+          { href: "/mail", label: "Innhólf", icon: ICONS.inbox },
+          { href: "/mail/compose", label: "Skrifa", icon: ICONS.compose },
+        ]
+      : []),
+    { href: "/mail/announcements", label: "Tilkynningar", icon: ICONS.bell },
+    { href: timeHref, label: "Tímar", icon: ICONS.clock },
+    { href: "/mail/more", label: "Meira", icon: ICONS.more },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-100">
-      {/* Haus */}
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-md items-center px-4 py-3">
           <span className="inline-flex items-center gap-2">
             <LogoMark size={28} />
             <span className="font-semibold tracking-tight text-slate-900">
               Tímaverk <span className="font-normal text-slate-400">· Skilaboð</span>
             </span>
           </span>
-          <Link
-            href={timeHref}
-            className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1.5 pl-2.5 pr-3 text-xs font-medium text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200"
-          >
-            <Icon d={ICONS.clock} active={false} />
-            Tímaskráning
-          </Link>
         </div>
       </header>
 
-      <div className="mx-auto max-w-md px-4 pb-28 pt-5">{children}</div>
+      <div className="mx-auto max-w-md px-4 pb-28 pt-5">
+        {access === null ? (
+          <div className="h-40 animate-pulse rounded-2xl bg-white/70" />
+        ) : (
+          children
+        )}
+      </div>
 
-      {/* Botnvalmynd */}
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-md justify-around">
           {nav.map((n) => {
             const active =
-              n.href === "/mail" ? pathname === "/mail" || /^\/mail\/[0-9a-f-]{36}/.test(pathname) : pathname.startsWith(n.href);
+              n.href === "/mail"
+                ? pathname === "/mail" || /^\/mail\/[0-9a-f-]{36}/.test(pathname)
+                : pathname.startsWith(n.href) && n.href.startsWith("/mail");
             return (
               <Link
                 key={n.href}
                 href={n.href}
-                className="flex min-w-[62px] flex-col items-center gap-1 px-1 py-2.5"
+                className="flex min-w-[58px] flex-col items-center gap-1 px-1 py-2.5"
               >
                 <Icon d={n.icon} active={active} />
                 <span

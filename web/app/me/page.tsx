@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { myMailAccess } from "@/lib/mail/service";
 import { LogoMark } from "@/components/Logo";
 
 interface ActiveEntry {
@@ -47,6 +48,7 @@ export default function MeHome() {
   const router = useRouter();
   const [active, setActive] = useState<ActiveEntry | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasMail, setHasMail] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -58,6 +60,7 @@ export default function MeHome() {
         setActive((data as ActiveEntry) ?? null);
         setLoading(false);
       });
+    myMailAccess().then((a) => setHasMail(a.hasMail)).catch(() => {});
   }, []);
 
   async function signOut() {
@@ -130,16 +133,29 @@ export default function MeHome() {
           </svg>
         }
       />
-      <CardLink
-        href="/mail"
-        title="Skilaboð"
-        subtitle="Innhólfið þitt og send skeyti"
-        icon={
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6" />
-          </svg>
-        }
-      />
+      {hasMail ? (
+        <CardLink
+          href="/mail"
+          title="Skilaboð"
+          subtitle="Innhólfið þitt og send skeyti"
+          icon={
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6" />
+            </svg>
+          }
+        />
+      ) : (
+        <CardLink
+          href="/mail/announcements"
+          title="Tilkynningar"
+          subtitle="Skilaboð frá stjórnendum"
+          icon={
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          }
+        />
+      )}
     </div>
   );
 }
