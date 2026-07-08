@@ -26,11 +26,56 @@ Starfsmaður getur aðeins skráð sig inn á verkefni ef hann er innan skilgrei
 │   │   ├── 0002_functions.sql # Geofence check-in/out, audit, helpers
 │   │   ├── 0003_rls.sql       # Row-Level Security stefnur (multi-tenant)
 │   │   ├── 0004_admin.sql     # Views + RPC fyrir stjórnborð
-│   │   └── 0005_mobile.sql    # Views + RPC fyrir mobile app
+│   │   ├── 0005_mobile.sql    # Views + RPC fyrir mobile app
+│   │   ├── 0006–0010          # Auth, public API, lykilorð starfsmanna o.fl.
+│   │   └── 0011_mail.sql      # Póstgátt (hópur 2 innhólf í appinu)
 │   └── seed.sql              # Prufugögn (eitt fyrirtæki, verkefni, starfsmenn)
-├── web/                      # Next.js stjórnborð (FULLBÚIÐ fyrir MVP)
-└── mobile/                   # Expo app starfsmanns (FULLBÚIÐ fyrir MVP)
+├── web/                      # Next.js: stjórnborð + starfsmanna-app (/me) + póstur (/mail)
+├── mobile/                   # Expo app starfsmanns
+├── scripts/                  # Uppsetningar-/seed-script (keyra gegn Supabase)
+└── MAILGATEWAY.md            # Póstgátt: beining, DNS, Microsoft 365, prófun
 ```
+
+## 🖥️ Setja upp á NÝRRI vél (allt sem þarf)
+
+Allur kóðinn er á GitHub — **ekkert er bundið við eina tölvu.** Gögnin búa í Supabase (skýi)
+og vefurinn keyrir á Vercel, svo ný vél þarf aðeins þróunarumhverfið:
+
+1. **Setja upp verkfæri:** [Node.js LTS](https://nodejs.org) og [Git](https://git-scm.com).
+   (Valfrjálst: GitHub Desktop, VS Code, Claude Code.)
+2. **Sækja kóðann:**
+   ```bash
+   git clone https://github.com/HKristinsson/Timastjornun.git
+   cd Timastjornun
+   ```
+3. **Leyndarmál (eina sem er EKKI í git):** búa til `web/.env.local` út frá
+   `web/.env.local.example` og `mobile/.env` út frá `mobile/.env.example` —
+   gildin færðu í Supabase → Settings → API (URL + publishable key).
+4. **Setja upp pakka:**
+   ```bash
+   cd web && npm install       # vefur
+   cd ../mobile && npm install # app
+   cd ../scripts && npm install # uppsetningarscript
+   ```
+5. **Keyra:** `cd web && npm run dev` → http://localhost:3000
+6. **Ef mappan er í Dropbox:** merktu `node_modules`, `.next` og `.expo` sem
+   `com.dropbox.ignored` (sjá „Þekkt umhverfisatriði" neðst) — annars læsir Dropbox skrám.
+
+> Gagnagrunnurinn þarf ENGA enduruppsetningu — hann er í Supabase-skýinu. Vercel deployar
+> sjálfkrafa við hvert `git push`. Símanúmer/lykilorð innskráninga breytast ekki.
+> ⚠️ Supabase frítt þrep **pásar verkefni eftir ~viku óvirkni** — endurvekja með
+> „Restore project" í dashboardinu (gögn haldast).
+
+## 📬 Póstgátt (skilaboð til starfsmanna)
+
+Innhólf í appinu fyrir **hóp 2** (vettvangsstarfsmenn án Microsoft 365 leyfis) — póstur á
+önnur netföng á léninu beinist áfram á Microsoft (hópur 1). Sjá **[MAILGATEWAY.md](MAILGATEWAY.md)**
+fyrir beiningarreglur, DNS og Microsoft-uppsetningu.
+
+- UI: `/mail` (innhólf, lesa, skrifa, sent, stjórnun móttakenda, stillingar) — mobile-first
+- Webhook: `POST /api/mail/inbound` (Mailgun, undirskrift staðfest, HTML hreinsað)
+- Þjónustulag: `web/lib/mail/` (flyst beint í native app síðar)
+- Prófun: `node scripts/seed-mail.mjs` seedar `worker.test@reir.is` + sýnisskeyti
 
 ## ⚡ Prófa núna
 
