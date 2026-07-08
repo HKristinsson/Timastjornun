@@ -104,4 +104,12 @@ create policy mail_att_select on storage.objects for select to authenticated
     )
   );
 
+-- Eyðing: notandi má eyða eigin upphölum (t.d. hætta við viðhengi)
+drop policy if exists mail_att_delete on storage.objects;
+create policy mail_att_delete on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'mail-attachments'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
 notify pgrst, 'reload schema';
