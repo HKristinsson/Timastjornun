@@ -25,8 +25,7 @@ function Icon({ d, active }: { d: string; active: boolean }) {
 }
 
 const ICONS = {
-  inbox: "M22 12h-6l-2 3h-4l-2-3H2 M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z",
-  compose: "M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z",
+  mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6",
   bell: "M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0",
   clock: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 6v6l4 2",
   more: "M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M19 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z M5 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
@@ -59,12 +58,7 @@ export default function MailLayout({ children }: { children: React.ReactNode }) 
   const timeHref = access?.isManager ? "/dashboard" : "/me";
 
   const nav = [
-    ...(access?.hasMail
-      ? [
-          { href: "/mail", label: "Innhólf", icon: ICONS.inbox },
-          { href: "/mail/compose", label: "Skrifa", icon: ICONS.compose },
-        ]
-      : []),
+    ...(access?.hasMail ? [{ href: "/mail", label: "Póstur", icon: ICONS.mail }] : []),
     { href: "/mail/announcements", label: "Tilkynningar", icon: ICONS.bell },
     { href: timeHref, label: "Tímar", icon: ICONS.clock },
     { href: "/mail/more", label: "Meira", icon: ICONS.more },
@@ -96,7 +90,10 @@ export default function MailLayout({ children }: { children: React.ReactNode }) 
           {nav.map((n) => {
             const active =
               n.href === "/mail"
-                ? pathname === "/mail" || /^\/mail\/[0-9a-f-]{36}/.test(pathname)
+                ? pathname === "/mail" ||
+                  pathname.startsWith("/mail/sent") ||
+                  pathname.startsWith("/mail/compose") ||
+                  /^\/mail\/[0-9a-f-]{36}/.test(pathname)
                 : pathname.startsWith(n.href) && n.href.startsWith("/mail");
             return (
               <Link

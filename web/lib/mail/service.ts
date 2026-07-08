@@ -73,6 +73,17 @@ export async function replyToEmail(
   return data as OutboundEmail;
 }
 
+// Lesa eitt sent skeyti (úthólf)
+export async function readSent(id: string): Promise<OutboundEmail | null> {
+  const { data, error } = await createClient()
+    .from("v_my_sent")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as OutboundEmail) ?? null;
+}
+
 export async function listSent(): Promise<OutboundEmail[]> {
   const { data, error } = await createClient()
     .from("v_my_sent")
