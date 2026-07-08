@@ -22,6 +22,8 @@ function translateEmpError(msg: string): string {
     return "Starfsmannanúmer er þegar í notkun.";
   if (msg.includes("DOMAIN_MISMATCH"))
     return msg.replace(/^.*DOMAIN_MISMATCH:\s*/, "");
+  if (msg.includes("SEAT_LIMIT"))
+    return msg.replace(/^.*SEAT_LIMIT:\s*/, "");
   return msg;
 }
 

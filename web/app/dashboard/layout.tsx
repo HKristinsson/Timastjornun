@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
+import ActingBanner from "@/components/ActingBanner";
 
 const nav = [
   { href: "/dashboard", label: "Yfirlit" },
@@ -34,6 +35,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen">
+      {isSuper && <ActingBanner />}
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-3">
           <span className="font-semibold text-brand">Tímaverk</span>
