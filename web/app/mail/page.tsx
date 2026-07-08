@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { listInbox } from "@/lib/mail/service";
 import type { InboundEmail } from "@/lib/mail/types";
+import { Avatar, niceDate, TestBadge, EmptyState } from "./ui";
 
 export default function InboxPage() {
   const [emails, setEmails] = useState<InboundEmail[]>([]);
@@ -17,51 +18,89 @@ export default function InboxPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const unread = emails.filter((e) => !e.read_at).length;
+
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Innhólf</h1>
+      <div className="flex items-end justify-between">
+        <h1 className="text-[22px] font-bold tracking-tight">Innhólf</h1>
+        {unread > 0 && (
+          <span className="rounded-full bg-brand px-2.5 py-0.5 text-xs font-semibold text-white">
+            {unread} ólesin
+          </span>
+        )}
+      </div>
 
       {error && (
-        <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
       )}
 
       {loading ? (
-        <p className="text-slate-400">Hleð…</p>
-      ) : emails.length === 0 ? (
-        <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-          <p className="text-3xl">📭</p>
-          <p className="mt-2 font-medium text-slate-700">Innhólfið er tómt</p>
-          <p className="mt-1 text-sm text-slate-500">
-            Póstur sem berst á netfangið þitt birtist hér.
-          </p>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-[76px] animate-pulse rounded-2xl bg-white/70" />
+          ))}
         </div>
+      ) : emails.length === 0 ? (
+        <EmptyState
+          icon={
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 12h-6l-2 3h-4l-2-3H2 M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z" />
+            </svg>
+          }
+          title="Innhólfið er tómt"
+          text="Póstur sem berst á netfangið þitt birtist hér."
+        />
       ) : (
-        emails.map((e) => (
-          <Link
-            key={e.id}
-            href={`/mail/${e.id}`}
-            className={`block rounded-2xl bg-white p-4 shadow-sm ${
-              e.read_at ? "" : "border-l-4 border-brand"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <p className={`truncate ${e.read_at ? "text-slate-700" : "font-semibold"}`}>
-                {e.sender_name || e.sender_email}
-              </p>
-              <p className="shrink-0 text-xs text-slate-400">
-                {new Date(e.received_at).toLocaleDateString("is-IS")}
-              </p>
-            </div>
-            <p className={`mt-0.5 truncate text-sm ${e.read_at ? "text-slate-500" : "text-slate-800"}`}>
-              {e.subject || "(ekkert efni)"}
-            </p>
-            {e.is_test && (
-              <span className="mt-2 inline-block rounded bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-                PRÓFUNARGÖGN
-              </span>
-            )}
-          </Link>
-        ))
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60">
+          {emails.map((e, i) => (
+            <Link
+              key={e.id}
+              href={`/mail/${e.id}`}
+              className={`flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-slate-50 active:bg-slate-100 ${
+                i > 0 ? "border-t border-slate-100" : ""
+              }`}
+            >
+              <div className="relative">
+                <Avatar name={e.sender_name || e.sender_email} />
+                {!e.read_at && (
+                  <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-brand" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p
+                    className={`truncate text-[15px] ${
+                      e.read_at ? "text-slate-600" : "font-semibold text-slate-900"
+                    }`}
+                  >
+                    {e.sender_name || e.sender_email}
+                  </p>
+                  <p className="shrink-0 text-xs tabular-nums text-slate-400">
+                    {niceDate(e.received_at)}
+                  </p>
+                </div>
+                <p
+                  className={`truncate text-sm ${
+                    e.read_at ? "text-slate-400" : "text-slate-700"
+                  }`}
+                >
+                  {e.subject || "(ekkert efni)"}
+                </p>
+                {e.is_test && (
+                  <div className="mt-1">
+                    <TestBadge />
+                  </div>
+                )}
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </Link>
+          ))}
+        </div>
       )}
     </div>
   );

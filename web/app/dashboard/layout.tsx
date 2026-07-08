@@ -8,6 +8,7 @@ const nav = [
   { href: "/dashboard/employees", label: "Starfsmenn" },
   { href: "/dashboard/time-entries", label: "Tímar" },
   { href: "/dashboard/reports", label: "Skýrslur" },
+  { href: "/mail", label: "Skilaboð" },
   { href: "/dashboard/settings", label: "Stillingar" },
 ];
 

@@ -79,6 +79,10 @@ export default function MeHome() {
       >
         📋 Tímayfirlit mitt
       </Link>
+
+      <Link href="/mail" className="block rounded-xl bg-white p-4 shadow-sm">
+        📬 Skilaboð
+      </Link>
     </div>
   );
 }

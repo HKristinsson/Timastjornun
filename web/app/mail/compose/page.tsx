@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { sendEmail } from "@/lib/mail/service";
 
+const field =
+  "w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-[15px] outline-none focus:border-brand focus:bg-white";
+
 export default function ComposePage() {
   const router = useRouter();
   const [to, setTo] = useState("");
@@ -26,52 +29,49 @@ export default function ComposePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Nýtt skeyti</h1>
+      <h1 className="text-[22px] font-bold tracking-tight">Nýtt skeyti</h1>
 
       {error && (
-        <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
       )}
 
-      <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
+      <div className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60">
         <div>
-          <label className="mb-1 block text-sm font-medium">Til</label>
+          <label className="mb-1.5 block text-sm font-semibold text-slate-700">Til</label>
           <input
             type="email"
             value={to}
             onChange={(e) => setTo(e.target.value)}
             placeholder="netfang@daemi.is"
-            className="w-full rounded-xl border border-slate-300 p-3 text-sm"
+            className={field}
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">Efni</label>
-          <input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 p-3 text-sm"
-          />
+          <label className="mb-1.5 block text-sm font-semibold text-slate-700">Efni</label>
+          <input value={subject} onChange={(e) => setSubject(e.target.value)} className={field} />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">Skeyti</label>
-          <textarea
-            rows={8}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 p-3 text-sm"
-          />
+          <label className="mb-1.5 block text-sm font-semibold text-slate-700">Skeyti</label>
+          <textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)} className={field} />
         </div>
         <button
           onClick={send}
           disabled={busy || !to.trim() || !body.trim()}
-          className="w-full rounded-xl bg-brand py-4 text-lg font-semibold text-white disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-4 text-[17px] font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
         >
-          {busy ? "Sendi…" : "📤 Senda"}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 2 11 13 M22 2 15 22l-4-9-9-4z" />
+          </svg>
+          {busy ? "Sendi…" : "Senda"}
         </button>
-        <p className="text-center text-xs text-slate-400">
-          MVP: skeyti eru vistuð sem send (mock) — póstveita verður tengd fyrir
-          raunverulega útsendingu (sjá MAILGATEWAY.md).
-        </p>
       </div>
+
+      <p className="text-center text-xs text-slate-400">
+        Prófunarútgáfa: skeyti vistast sem send — póstveita verður tengd fyrir
+        raunverulega útsendingu.
+      </p>
     </div>
   );
 }
