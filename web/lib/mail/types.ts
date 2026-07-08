@@ -12,6 +12,7 @@ export interface InboundEmail {
   read_at: string | null;
   status: "received" | "archived";
   is_test: boolean;
+  is_starred: boolean;
 }
 
 export interface OutboundEmail {

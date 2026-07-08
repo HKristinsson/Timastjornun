@@ -82,6 +82,15 @@ export async function listSent(): Promise<OutboundEmail[]> {
   return (data ?? []) as OutboundEmail[];
 }
 
+// Merkja/afmerkja póst sem eftirlæti (stjarna)
+export async function setStar(emailId: string, star: boolean): Promise<void> {
+  const { error } = await createClient().rpc("mail_set_star", {
+    p_id: emailId,
+    p_star: star,
+  });
+  if (error) throw new Error(error.message);
+}
+
 // Senda á marga viðtakendur (komma/semíkomma aðskilið). Eitt skeyti per viðtakanda.
 export function splitRecipients(input: string): string[] {
   return input

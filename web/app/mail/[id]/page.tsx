@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { readEmail, replyToEmail, listAttachments, getAttachmentUrl } from "@/lib/mail/service";
+import {
+  readEmail,
+  replyToEmail,
+  listAttachments,
+  getAttachmentUrl,
+  setStar,
+} from "@/lib/mail/service";
 import type { InboundEmail, EmailAttachment } from "@/lib/mail/types";
 import { Avatar, TestBadge } from "../ui";
 
@@ -92,9 +98,35 @@ export default function ReadEmailPage() {
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60">
         <div className="border-b border-slate-100 p-5">
-          <h1 className="text-lg font-bold leading-snug text-slate-900">
-            {email.subject || "(ekkert efni)"}
-          </h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-lg font-bold leading-snug text-slate-900">
+              {email.subject || "(ekkert efni)"}
+            </h1>
+            <button
+              onClick={async () => {
+                const next = !email.is_starred;
+                setEmail({ ...email, is_starred: next });
+                await setStar(email.id, next).catch(() =>
+                  setEmail({ ...email, is_starred: !next })
+                );
+              }}
+              aria-label={email.is_starred ? "Fjarlægja úr eftirlæti" : "Merkja sem eftirlæti"}
+              className="shrink-0 p-1"
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill={email.is_starred ? "#f59e0b" : "none"}
+                stroke={email.is_starred ? "#f59e0b" : "#cbd5e1"}
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" />
+              </svg>
+            </button>
+          </div>
           <div className="mt-3 flex items-center gap-3">
             <Avatar name={email.sender_name || email.sender_email} />
             <div className="min-w-0">

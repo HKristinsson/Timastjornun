@@ -25,6 +25,9 @@ export default function AnnouncementsPage() {
   const [busy, setBusy] = useState(false);
   const [openReaders, setOpenReaders] = useState<string | null>(null);
   const [readers, setReaders] = useState<AnnouncementReader[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [onlyUnread, setOnlyUnread] = useState(false);
 
   const load = useCallback(async () => {
     const access = await myMailAccess();
@@ -148,11 +151,39 @@ export default function AnnouncementsPage() {
         </div>
       )}
 
-      {/* Starfsmaður: mínar tilkynningar með les-kvittun */}
+      {/* Starfsmaður: mínar tilkynningar — smelltu til að opna og lesa */}
       <div className="space-y-2">
         {isManager && mine.length > 0 && (
           <p className="text-sm font-semibold text-slate-600">Mínar tilkynningar</p>
         )}
+
+        {mine.length > 3 && (
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Leita…"
+                className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm shadow-sm outline-none focus:border-brand"
+              />
+            </div>
+            <button
+              onClick={() => setOnlyUnread((v) => !v)}
+              className={`rounded-xl px-3.5 text-[13px] font-semibold ring-1 transition-colors ${
+                onlyUnread
+                  ? "bg-brand text-white ring-brand"
+                  : "bg-white text-slate-600 ring-slate-200"
+              }`}
+            >
+              Ólesið
+            </button>
+          </div>
+        )}
+
         {mine.length === 0 && !isManager ? (
           <div className="rounded-2xl bg-white px-6 py-12 text-center shadow-sm ring-1 ring-slate-200/60">
             <p className="font-semibold text-slate-700">Engar tilkynningar</p>
@@ -161,39 +192,83 @@ export default function AnnouncementsPage() {
             </p>
           </div>
         ) : (
-          mine.map((a) => (
-            <div
-              key={a.id}
-              className={`rounded-2xl bg-white p-4 shadow-sm ring-1 ${
-                a.read_at ? "ring-slate-200/60" : "ring-brand/40"
-              }`}
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <p className={`${a.read_at ? "" : "font-semibold"} text-slate-800`}>
-                  {a.title}
-                </p>
-                <p className="shrink-0 text-xs text-slate-400">{niceDate(a.created_at)}</p>
-              </div>
-              {a.sender_name && (
-                <p className="mt-0.5 text-xs text-slate-400">Frá: {a.sender_name}</p>
-              )}
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-                {a.body}
-              </p>
-              {a.read_at ? (
-                <p className="mt-3 text-xs font-medium text-emerald-600">
-                  ✓ Þú kvittaðir fyrir lestur
-                </p>
-              ) : (
-                <button
-                  onClick={() => markRead(a.id)}
-                  className="mt-3 w-full rounded-xl bg-brand py-3 font-semibold text-white transition-colors hover:bg-brand-dark"
+          mine
+            .filter((a) => !onlyUnread || !a.read_at)
+            .filter((a) => {
+              const q = query.trim().toLowerCase();
+              if (!q) return true;
+              return (
+                a.title.toLowerCase().includes(q) ||
+                a.body.toLowerCase().includes(q) ||
+                (a.sender_name ?? "").toLowerCase().includes(q)
+              );
+            })
+            .map((a) => {
+              const open = expanded === a.id;
+              return (
+                <div
+                  key={a.id}
+                  className={`overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ${
+                    a.read_at ? "ring-slate-200/60" : "ring-brand/40"
+                  }`}
                 >
-                  Ég hef lesið þetta
-                </button>
-              )}
-            </div>
-          ))
+                  <button
+                    onClick={() => setExpanded(open ? null : a.id)}
+                    className="flex w-full items-center gap-3 p-4 text-left"
+                  >
+                    {!a.read_at && (
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-brand" />
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={`block truncate ${
+                          a.read_at ? "text-slate-700" : "font-semibold text-slate-900"
+                        }`}
+                      >
+                        {a.title}
+                      </span>
+                      <span className="block truncate text-xs text-slate-400">
+                        {a.sender_name ? `Frá: ${a.sender_name} · ` : ""}
+                        {niceDate(a.created_at)}
+                      </span>
+                    </span>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#94a3b8"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </button>
+
+                  {open && (
+                    <div className="border-t border-slate-100 px-4 pb-4 pt-3">
+                      <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-slate-800">
+                        {a.body}
+                      </p>
+                      {a.read_at ? (
+                        <p className="mt-3 text-xs font-medium text-emerald-600">
+                          ✓ Þú kvittaðir fyrir lestur
+                        </p>
+                      ) : (
+                        <button
+                          onClick={() => markRead(a.id)}
+                          className="mt-4 w-full rounded-xl bg-brand py-3 font-semibold text-white transition-colors hover:bg-brand-dark"
+                        >
+                          Ég hef lesið þetta
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
         )}
       </div>
     </div>
