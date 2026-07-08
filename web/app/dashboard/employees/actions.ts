@@ -23,6 +23,31 @@ function translateEmpError(msg: string): string {
   return msg;
 }
 
+// Skrá/afskrá netfang starfsmanns sem hóps-2 póstmóttakanda (innhólf í appinu).
+async function syncMailInbox(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  email: string | null,
+  wantInbox: boolean
+): Promise<string | null> {
+  if (wantInbox) {
+    if (!email) {
+      return "Netfang þarf að vera skráð til að virkja innhólf í appinu.";
+    }
+    const { error } = await supabase.rpc("mail_upsert_recipient", {
+      p_email: email.toLowerCase(),
+      p_full_name: null,
+    });
+    if (error) return translateEmpError(error.message);
+  } else if (email) {
+    // Afvirkja ef til (engin villa þótt móttakandi sé ekki til)
+    await supabase.rpc("mail_set_recipient_active_by_email", {
+      p_email: email.toLowerCase(),
+      p_active: false,
+    });
+  }
+  return null;
+}
+
 export async function createEmployee(
   _prev: EmployeeFormState,
   formData: FormData
@@ -59,6 +84,14 @@ export async function createEmployee(
     });
   }
 
+  // Innhólf í appinu (hópur 2)
+  const mailErr = await syncMailInbox(
+    supabase,
+    str(formData.get("email")),
+    formData.get("mail_inbox") != null
+  );
+  if (mailErr) return { error: mailErr };
+
   revalidatePath("/dashboard/employees");
   redirect("/dashboard/employees");
 }
@@ -93,6 +126,14 @@ export async function updateEmployee(
     p_employee_id: id,
     p_project_ids: projectIds,
   });
+
+  // Innhólf í appinu (hópur 2)
+  const mailErr = await syncMailInbox(
+    supabase,
+    str(formData.get("email")),
+    formData.get("mail_inbox") != null
+  );
+  if (mailErr) return { error: mailErr };
 
   revalidatePath("/dashboard/employees");
   redirect("/dashboard/employees");

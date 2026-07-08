@@ -16,6 +16,7 @@ export interface EmployeeDefaults {
   email?: string | null;
   status?: string;
   assignedProjectIds?: string[];
+  mailInbox?: boolean;
 }
 
 export default function EmployeeForm({
@@ -117,6 +118,26 @@ export default function EmployeeForm({
             </>
           )}
         </p>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <label className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            name="mail_inbox"
+            defaultChecked={defaults.mailInbox ?? false}
+            className="mt-1 h-4 w-4"
+          />
+          <span>
+            <span className="block text-sm font-medium">
+              Innhólf í appinu (hópur 2)
+            </span>
+            <span className="mt-0.5 block text-xs text-slate-500">
+              Póstur á netfang starfsmannsins berst í skilaboðahluta appsins í stað
+              Microsoft 365. Krefst þess að <strong>netfang</strong> sé skráð hér að ofan.
+            </span>
+          </span>
+        </label>
       </div>
 
       <div>

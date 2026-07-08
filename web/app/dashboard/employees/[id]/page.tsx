@@ -25,8 +25,21 @@ async function getData(id: string): Promise<{
     ]);
     if (!emp) return { employee: null, projects: [] };
     const assignedIds = ((assigned ?? []) as { project_id: string }[]).map((a) => a.project_id);
+
+    // Er netfang starfsmannsins virkur hóps-2 póstmóttakandi?
+    let mailInbox = false;
+    const email = (emp as EmployeeDefaults).email;
+    if (email) {
+      const { data: rec } = await supabase
+        .from("group2_recipients")
+        .select("active")
+        .eq("email", email)
+        .maybeSingle();
+      mailInbox = (rec as { active: boolean } | null)?.active ?? false;
+    }
+
     return {
-      employee: { ...(emp as EmployeeDefaults), assignedProjectIds: assignedIds },
+      employee: { ...(emp as EmployeeDefaults), assignedProjectIds: assignedIds, mailInbox },
       projects: (projects ?? []) as ProjectOption[],
     };
   } catch {

@@ -1,15 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { listRecipients, upsertRecipient, setRecipientActive } from "@/lib/mail/service";
+import Link from "next/link";
+import { listRecipients, setRecipientActive } from "@/lib/mail/service";
 import type { Group2Recipient } from "@/lib/mail/types";
 import { Avatar, EmptyState } from "../ui";
 
 export default function MailAdminPage() {
   const [recipients, setRecipients] = useState<Group2Recipient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -20,26 +19,6 @@ export default function MailAdminPage() {
   }, []);
 
   useEffect(load, [load]);
-
-  async function add() {
-    setError(null);
-    setBusy(true);
-    try {
-      await upsertRecipient(email.trim().toLowerCase());
-      setEmail("");
-      load();
-    } catch (e) {
-      setError(
-        e instanceof Error && e.message.includes("FORBIDDEN")
-          ? "Aðeins kerfisstjóri getur breytt móttakendum."
-          : e instanceof Error
-          ? e.message
-          : "Villa."
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function toggle(r: Group2Recipient) {
     await setRecipientActive(r.id, !r.active).catch(() => {});
@@ -62,27 +41,23 @@ export default function MailAdminPage() {
         </div>
       )}
 
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/60">
-        <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-          Nýtt netfang
-        </label>
-        <div className="flex gap-2">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="starfsmadur@reir.is"
-            className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[15px] outline-none focus:border-brand focus:bg-white"
-          />
-          <button
-            onClick={add}
-            disabled={busy || !email.includes("@")}
-            className="rounded-xl bg-brand px-4 py-3 font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
-          >
-            Bæta við
-          </button>
+      <Link
+        href="/dashboard/employees"
+        className="flex items-center justify-between rounded-2xl border border-blue-100 bg-blue-50 p-4 transition-colors hover:bg-blue-100"
+      >
+        <div>
+          <p className="font-semibold text-slate-800">
+            Nýir móttakendur eru stofnaðir í starfsmannaskránni
+          </p>
+          <p className="mt-0.5 text-sm text-slate-600">
+            Stofnaðu starfsmann með netfangi og lykilorði og hakaðu við{" "}
+            <strong>„Innhólf í appinu"</strong>.
+          </p>
         </div>
-      </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </Link>
 
       {loading ? (
         <div className="h-20 animate-pulse rounded-2xl bg-white/70" />
