@@ -3,7 +3,14 @@
 // Þjónustulag póstgáttar — EINA leiðin sem UI talar við bakendann.
 // Hrein eining án UI-tengsla svo hún flytjist beint í native app (Expo) síðar.
 import { createClient } from "@/lib/supabase/client";
-import type { InboundEmail, OutboundEmail, Group2Recipient } from "./types";
+import type {
+  InboundEmail,
+  OutboundEmail,
+  Group2Recipient,
+  EmailAttachment,
+} from "./types";
+
+const BUCKET = "mail-attachments";
 
 export async function checkIfGroup2Recipient(email: string): Promise<boolean> {
   const { data, error } = await createClient().rpc("mail_is_group2", { p_email: email });
@@ -70,6 +77,61 @@ export async function listSent(): Promise<OutboundEmail[]> {
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as OutboundEmail[];
+}
+
+// --- Viðhengi -------------------------------------------------------------------
+
+// Hlaða upp skrá (mynd/skjali) fyrir útsent skeyti. Slóð: <auth_uid>/<uuid>-<nafn>
+export async function uploadAttachment(file: File): Promise<string> {
+  const supabase = createClient();
+  const { data: session } = await supabase.auth.getUser();
+  const uid = session.user?.id;
+  if (!uid) throw new Error("Ekki innskráð(ur).");
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${uid}/${crypto.randomUUID()}-${safeName}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    contentType: file.type || "application/octet-stream",
+  });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+// Tengja upphlaðið viðhengi við sent skeyti
+export async function addOutboundAttachment(
+  outboundId: string,
+  file: File,
+  storagePath: string
+): Promise<void> {
+  const { error } = await createClient().rpc("mail_add_outbound_attachment", {
+    p_outbound_id: outboundId,
+    p_filename: file.name,
+    p_content_type: file.type || null,
+    p_storage_path: storagePath,
+    p_size_bytes: file.size,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function listAttachments(opts: {
+  inboundId?: string;
+  outboundId?: string;
+}): Promise<EmailAttachment[]> {
+  let q = createClient().from("email_attachments").select("*");
+  if (opts.inboundId) q = q.eq("inbound_email_id", opts.inboundId);
+  if (opts.outboundId) q = q.eq("outbound_email_id", opts.outboundId);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []) as EmailAttachment[];
+}
+
+// Tímabundin (1 klst) örugg slóð til að skoða/sækja viðhengi
+export async function getAttachmentUrl(storagePath: string): Promise<string> {
+  const { data, error } = await createClient()
+    .storage.from(BUCKET)
+    .createSignedUrl(storagePath, 3600);
+  if (error || !data?.signedUrl) throw new Error(error?.message ?? "Engin slóð.");
+  return data.signedUrl;
 }
 
 // --- Admin: hóps-2 móttakendur ------------------------------------------------

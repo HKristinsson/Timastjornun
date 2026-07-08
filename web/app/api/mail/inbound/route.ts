@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 3) Vista í innhólf appsins
-  const { error: saveErr } = await supabase.rpc("mail_save_inbound", {
+  const { data: saved, error: saveErr } = await supabase.rpc("mail_save_inbound", {
     p_recipient: recipient,
     p_sender_email: senderEmail,
     p_sender_name: senderName,
@@ -108,5 +108,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: saveErr.message }, { status: 500 });
   }
 
-  return NextResponse.json({ routed: "group2_app_inbox", saved: true });
+  // 4) Viðhengi: Mailgun sendir skrár sem multipart-hluta (attachment-1, ...)
+  const savedEmail = saved as { id: string; tenant_id: string };
+  let attachmentCount = 0;
+  for (const [, value] of form.entries()) {
+    if (!(value instanceof File) || value.size === 0) continue;
+    if (value.size > 10 * 1024 * 1024) continue; // 10 MB hámark fötunnar
+    const safeName = value.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `inbound/${savedEmail.id}/${attachmentCount}-${safeName}`;
+    const { error: upErr } = await supabase.storage
+      .from("mail-attachments")
+      .upload(path, value, {
+        contentType: value.type || "application/octet-stream",
+      });
+    if (upErr) continue; // eitt viðhengi má klikka án þess að fella skeytið
+    await supabase.from("email_attachments").insert({
+      tenant_id: savedEmail.tenant_id,
+      inbound_email_id: savedEmail.id,
+      filename: value.name,
+      content_type: value.type || null,
+      storage_path: path,
+      size_bytes: value.size,
+    });
+    attachmentCount++;
+  }
+
+  return NextResponse.json({
+    routed: "group2_app_inbox",
+    saved: true,
+    attachments: attachmentCount,
+  });
 }

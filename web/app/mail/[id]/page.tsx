@@ -3,9 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { readEmail, replyToEmail } from "@/lib/mail/service";
-import type { InboundEmail } from "@/lib/mail/types";
+import { readEmail, replyToEmail, listAttachments, getAttachmentUrl } from "@/lib/mail/service";
+import type { InboundEmail, EmailAttachment } from "@/lib/mail/types";
 import { Avatar, TestBadge } from "../ui";
+
+interface AttachmentView extends EmailAttachment {
+  url: string | null;
+}
 
 export default function ReadEmailPage() {
   const { id } = useParams<{ id: string }>();
@@ -17,10 +21,27 @@ export default function ReadEmailPage() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const [attachments, setAttachments] = useState<AttachmentView[]>([]);
+
   useEffect(() => {
     readEmail(id)
       .then(setEmail)
       .finally(() => setLoading(false));
+
+    // Viðhengi + öruggar slóðir
+    listAttachments({ inboundId: id })
+      .then(async (list) => {
+        const withUrls = await Promise.all(
+          list.map(async (a) => ({
+            ...a,
+            url: a.storage_path
+              ? await getAttachmentUrl(a.storage_path).catch(() => null)
+              : null,
+          }))
+        );
+        setAttachments(withUrls);
+      })
+      .catch(() => {});
   }, [id]);
 
   async function sendReply() {
@@ -111,6 +132,53 @@ export default function ReadEmailPage() {
             </p>
           )}
         </div>
+
+        {attachments.length > 0 && (
+          <div className="border-t border-slate-100 p-5">
+            <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+              Viðhengi ({attachments.length})
+            </p>
+            <div className="space-y-2">
+              {attachments.map((a) =>
+                a.url && a.content_type?.startsWith("image/") ? (
+                  <a key={a.id} href={a.url} target="_blank" rel="noreferrer" className="block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={a.url}
+                      alt={a.filename}
+                      className="max-h-72 w-full rounded-xl border border-slate-200 object-cover"
+                    />
+                  </a>
+                ) : (
+                  <a
+                    key={a.id}
+                    href={a.url ?? "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 transition-colors hover:bg-slate-100"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M13 2v7h7" />
+                    </svg>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-slate-800">
+                        {a.filename}
+                      </span>
+                      {a.size_bytes != null && (
+                        <span className="text-xs text-slate-400">
+                          {Math.max(1, Math.round(a.size_bytes / 1024))} KB
+                        </span>
+                      )}
+                    </span>
+                  </a>
+                )
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {notice && (

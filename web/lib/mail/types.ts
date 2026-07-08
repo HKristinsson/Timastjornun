@@ -33,3 +33,13 @@ export interface Group2Recipient {
   active: boolean;
   created_at: string;
 }
+
+export interface EmailAttachment {
+  id: string;
+  inbound_email_id: string | null;
+  outbound_email_id: string | null;
+  filename: string;
+  content_type: string | null;
+  storage_path: string | null;
+  size_bytes: number | null;
+}

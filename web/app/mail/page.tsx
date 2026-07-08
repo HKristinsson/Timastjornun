@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { listInbox } from "@/lib/mail/service";
 import type { InboundEmail } from "@/lib/mail/types";
-import { Avatar, niceDate, TestBadge, EmptyState } from "./ui";
+import { Avatar, niceDate, TestBadge } from "./ui";
 
 export default function InboxPage() {
   const [emails, setEmails] = useState<InboundEmail[]>([]);
@@ -44,15 +44,18 @@ export default function InboxPage() {
           ))}
         </div>
       ) : emails.length === 0 ? (
-        <EmptyState
-          icon={
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 12h-6l-2 3h-4l-2-3H2 M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z" />
-            </svg>
-          }
-          title="Innhólfið er tómt"
-          text="Póstur sem berst á netfangið þitt birtist hér."
-        />
+        <div className="rounded-2xl bg-white px-6 py-10 text-center shadow-sm ring-1 ring-slate-200/60">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/marketing/empty-inbox.png"
+            alt=""
+            className="mx-auto w-44"
+          />
+          <p className="mt-2 font-semibold text-slate-700">Innhólfið er tómt</p>
+          <p className="mx-auto mt-1 max-w-[240px] text-sm text-slate-500">
+            Póstur sem berst á netfangið þitt birtist hér.
+          </p>
+        </div>
       ) : (
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60">
           {emails.map((e, i) => (
