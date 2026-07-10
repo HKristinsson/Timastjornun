@@ -11,8 +11,18 @@ interface CompanyRow {
   created_at: string;
   max_employees: number;
   active_employees: number;
+  inactive_employees: number;
   active_projects: number;
+  inactive_projects: number;
   admin_email: string | null;
+}
+
+interface CompanyEdit {
+  id: string;
+  name: string;
+  domain: string;
+  status: string;
+  seats: string;
 }
 
 interface EmployeeRow {
@@ -43,6 +53,8 @@ export default function CompaniesPage() {
   const [editSeats, setEditSeats] = useState<{ id: string; value: string } | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Record<string, EmployeeRow[]>>({});
+  const [edit, setEdit] = useState<CompanyEdit | null>(null);
+  const [editErr, setEditErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { data, error } = await createClient().rpc("su_companies_overview");
@@ -121,6 +133,30 @@ export default function CompaniesPage() {
     window.location.href = "/dashboard";
   }
 
+  async function saveEdit() {
+    if (!edit) return;
+    setEditErr(null);
+    const { error } = await createClient().rpc("su_update_company", {
+      p_id: edit.id,
+      p_name: edit.name.trim(),
+      p_domain: edit.domain.trim().toLowerCase() || null,
+      p_status: edit.status,
+      p_max_employees: parseInt(edit.seats, 10) || 1,
+    });
+    if (error) {
+      setEditErr(
+        error.message.includes("duplicate")
+          ? "Lénið er þegar skráð á annað félag."
+          : error.message.includes("BAD_SEATS")
+          ? "Sætafjöldi verður að vera a.m.k. 1."
+          : error.message
+      );
+      return;
+    }
+    setEdit(null);
+    load();
+  }
+
   if (allowed === false) {
     return (
       <p className="text-slate-500">
@@ -138,6 +174,52 @@ export default function CompaniesPage() {
           og netföng þess. „⚡ Vinna sem" beinir öllu stjórnborðinu að félaginu — þá
           stofnarðu starfsmenn, verkefni og staðsetningar fyrir það.
         </p>
+      </div>
+
+      {/* Heildartölfræði grunnsins */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <div className="text-3xl font-semibold">{companies.length}</div>
+          <div className="mt-1 text-sm text-slate-500">
+            Félög í grunni ·{" "}
+            <span className="text-green-600">
+              {companies.filter((c) => c.status === "active").length} virk
+            </span>
+          </div>
+        </div>
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <div className="text-3xl font-semibold">
+            {companies.reduce((s, c) => s + c.active_employees, 0)}
+          </div>
+          <div className="mt-1 text-sm text-slate-500">
+            Virkir notendur ·{" "}
+            <span className="text-slate-400">
+              {companies.reduce((s, c) => s + c.inactive_employees, 0)} óvirkir
+            </span>
+          </div>
+        </div>
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <div className="text-3xl font-semibold">
+            {companies.reduce((s, c) => s + c.active_projects, 0)}
+          </div>
+          <div className="mt-1 text-sm text-slate-500">
+            Virk verkefni ·{" "}
+            <span className="text-slate-400">
+              {companies.reduce((s, c) => s + c.inactive_projects, 0)} óvirk
+            </span>
+          </div>
+        </div>
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <div className="text-3xl font-semibold">
+            {companies.reduce((s, c) => s + c.max_employees, 0)}
+          </div>
+          <div className="mt-1 text-sm text-slate-500">
+            Seld sæti ·{" "}
+            <span className="text-slate-400">
+              {companies.reduce((s, c) => s + c.max_employees - c.active_employees, 0)} laus
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Stofna nýtt félag */}
@@ -235,7 +317,14 @@ export default function CompaniesPage() {
                     <td className="px-2 py-3 text-center text-slate-400">
                       {open ? "▾" : "▸"}
                     </td>
-                    <td className="px-2 py-3 font-medium">{c.name}</td>
+                    <td className="px-2 py-3 font-medium">
+                      {c.name}
+                      {c.status !== "active" && (
+                        <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
+                          Óvirkt
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-600">{c.domain ?? "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{c.admin_email ?? "—"}</td>
                     <td className="px-4 py-3">{c.active_projects}</td>
@@ -291,14 +380,109 @@ export default function CompaniesPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => actAs(c)}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-brand hover:text-brand"
-                      >
-                        ⚡ Vinna sem
-                      </button>
+                      <span className="inline-flex gap-2">
+                        <button
+                          onClick={() =>
+                            setEdit({
+                              id: c.id,
+                              name: c.name,
+                              domain: c.domain ?? "",
+                              status: c.status,
+                              seats: String(c.max_employees),
+                            })
+                          }
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-brand hover:text-brand"
+                        >
+                          ✎ Breyta
+                        </button>
+                        <button
+                          onClick={() => actAs(c)}
+                          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-brand hover:text-brand"
+                        >
+                          ⚡ Vinna sem
+                        </button>
+                      </span>
                     </td>
                   </tr>
+                  {edit?.id === c.id && (
+                    <tr className="border-t border-slate-100 bg-blue-50/40">
+                      <td colSpan={7} className="px-6 py-4">
+                        <p className="mb-3 text-sm font-semibold text-slate-700">
+                          Breyta félagi: {c.name}
+                        </p>
+                        {editErr && (
+                          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                            {editErr}
+                          </p>
+                        )}
+                        <div className="grid max-w-3xl grid-cols-2 gap-3 lg:grid-cols-4">
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-slate-500">
+                              Nafn
+                            </label>
+                            <input
+                              value={edit.name}
+                              onChange={(e) => setEdit({ ...edit, name: e.target.value })}
+                              className={field}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-slate-500">
+                              Lén
+                            </label>
+                            <input
+                              value={edit.domain}
+                              onChange={(e) => setEdit({ ...edit, domain: e.target.value })}
+                              className={field}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-slate-500">
+                              Sæti
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={edit.seats}
+                              onChange={(e) => setEdit({ ...edit, seats: e.target.value })}
+                              className={field}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-slate-500">
+                              Staða
+                            </label>
+                            <select
+                              value={edit.status}
+                              onChange={(e) => setEdit({ ...edit, status: e.target.value })}
+                              className={field}
+                            >
+                              <option value="active">Virkt</option>
+                              <option value="suspended">Óvirkt</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={saveEdit}
+                            disabled={!edit.name.trim()}
+                            className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+                          >
+                            Vista breytingar
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEdit(null);
+                              setEditErr(null);
+                            }}
+                            className="rounded-lg border border-slate-300 px-4 py-2 text-sm"
+                          >
+                            Hætta
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                   {open && (
                     <tr className="border-t border-slate-100 bg-slate-50/60">
                       <td colSpan={7} className="px-6 py-4">

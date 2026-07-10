@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
 import ActingBanner from "@/components/ActingBanner";
+import SuperGuard from "@/components/SuperGuard";
 
 const nav = [
   { href: "/dashboard", label: "Yfirlit" },
@@ -19,22 +20,31 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Super admin sér einnig „Félög"
   let isSuper = false;
+  let hasActing = false;
   try {
     const supabase = await createClient();
-    const { data: roles } = await supabase.rpc("my_roles");
+    const [{ data: roles }, { data: acting }] = await Promise.all([
+      supabase.rpc("my_roles"),
+      supabase.rpc("su_acting_tenant"),
+    ]);
     isSuper = ((roles ?? []) as string[]).includes("super_admin");
+    hasActing = ((acting ?? []) as unknown[]).length > 0;
   } catch {
     // án Supabase-tengingar: sjálfgefin valmynd
   }
 
-  const items = isSuper
+  // Super án valins félags: aðeins Félög — allt annað krefst þess að félag sé valið
+  const superNoActing = isSuper && !hasActing;
+  const items = superNoActing
+    ? [{ href: "/dashboard/companies", label: "Félög" }]
+    : isSuper
     ? [...nav, { href: "/dashboard/companies", label: "Félög" }]
     : nav;
 
   return (
     <div className="min-h-screen">
+      <SuperGuard active={superNoActing} />
       {isSuper && <ActingBanner />}
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-3">

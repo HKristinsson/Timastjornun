@@ -1,6 +1,24 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+// Super admin án valins félags á heima á Félög-yfirlitinu
+async function superWithoutCompany(): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const [{ data: roles }, { data: acting }] = await Promise.all([
+      supabase.rpc("my_roles"),
+      supabase.rpc("su_acting_tenant"),
+    ]);
+    return (
+      ((roles ?? []) as string[]).includes("super_admin") &&
+      ((acting ?? []) as unknown[]).length === 0
+    );
+  } catch {
+    return false;
+  }
+}
 
 interface ActiveRow {
   id: string;
@@ -47,6 +65,10 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 }
 
 export default async function DashboardPage() {
+  if (await superWithoutCompany()) {
+    redirect("/dashboard/companies");
+  }
+
   const { active, activeProjects, pending } = await getData();
   const outside = active.filter((a) => a.inside_geofence === false).length;
 
