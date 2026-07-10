@@ -55,6 +55,7 @@ export default function CompaniesPage() {
   const [employees, setEmployees] = useState<Record<string, EmployeeRow[]>>({});
   const [edit, setEdit] = useState<CompanyEdit | null>(null);
   const [editErr, setEditErr] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await createClient().rpc("su_companies_overview");
@@ -116,6 +117,7 @@ export default function CompaniesPage() {
     setAdminEmail("");
     setAdminPassword("");
     setSeats("10");
+    setShowCreate(false);
     load();
   }
 
@@ -220,73 +222,6 @@ export default function CompaniesPage() {
             </span>
           </div>
         </div>
-      </div>
-
-      {/* Stofna nýtt félag */}
-      <div className="max-w-2xl space-y-4 rounded-xl bg-white p-6 shadow-sm">
-        <p className="font-semibold">Stofna nýtt félag</p>
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-        {notice && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-            {notice}
-          </div>
-        )}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Nafn félags</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} className={field} />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Lén (t.d. reir.is)</label>
-            <input value={domain} onChange={(e) => setDomain(e.target.value)} className={field} />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Netfang admin</label>
-            <input
-              type="email"
-              value={adminEmail}
-              onChange={(e) => setAdminEmail(e.target.value)}
-              className={field}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Lykilorð admin</label>
-            <input
-              type="text"
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              className={field}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">
-              Fjöldi starfsmanna (sæti)
-            </label>
-            <input
-              type="number"
-              min={1}
-              value={seats}
-              onChange={(e) => setSeats(e.target.value)}
-              className={field}
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              Greitt er fyrir hvert sæti — kerfið stöðvar stofnun umfram þau.
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={create}
-          disabled={
-            busy || !name.trim() || !adminEmail.includes("@") || adminPassword.length < 6
-          }
-          className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
-        >
-          {busy ? "Stofna…" : "Stofna félag + admin"}
-        </button>
       </div>
 
       {/* Skjáborð: félög með útvíkkanlegum starfsmannalistum */}
@@ -551,6 +486,100 @@ export default function CompaniesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Stofna nýtt félag — fyrir neðan félagalistann */}
+      {notice && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {notice}
+        </div>
+      )}
+
+      {!showCreate ? (
+        <button
+          onClick={() => {
+            setShowCreate(true);
+            setNotice(null);
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-white py-5 font-semibold text-slate-600 transition-colors hover:border-brand hover:text-brand"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <path d="M12 5v14 M5 12h14" />
+          </svg>
+          Stofna nýtt félag
+        </button>
+      ) : (
+        <div className="max-w-2xl space-y-4 rounded-xl bg-white p-6 shadow-sm ring-2 ring-brand/20">
+          <div className="flex items-center justify-between">
+            <p className="font-semibold">Stofna nýtt félag</p>
+            <button
+              onClick={() => {
+                setShowCreate(false);
+                setError(null);
+              }}
+              className="text-sm text-slate-400 hover:text-slate-600"
+            >
+              ✕ Loka
+            </button>
+          </div>
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium">Nafn félags</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} className={field} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Lén (t.d. reir.is)</label>
+              <input value={domain} onChange={(e) => setDomain(e.target.value)} className={field} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Netfang admin</label>
+              <input
+                type="email"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                className={field}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">Lykilorð admin</label>
+              <input
+                type="text"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                className={field}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Fjöldi starfsmanna (sæti)
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={seats}
+                onChange={(e) => setSeats(e.target.value)}
+                className={field}
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Greitt er fyrir hvert sæti — kerfið stöðvar stofnun umfram þau.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={create}
+            disabled={
+              busy || !name.trim() || !adminEmail.includes("@") || adminPassword.length < 6
+            }
+            className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+          >
+            {busy ? "Stofna…" : "Stofna félag + admin"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
