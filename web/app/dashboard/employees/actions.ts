@@ -11,6 +11,20 @@ function str(v: FormDataEntryValue | null): string | null {
   return s === "" ? null : s;
 }
 
+// Netfang: notandanafn@lén félagsins (ef lén er skráð), annars frjálst netfang
+function resolveEmail(formData: FormData): { email: string | null; error?: string } {
+  const user = str(formData.get("email_user"));
+  const domain = str(formData.get("email_domain"));
+  if (domain && user) {
+    if (user.includes("@") || /\s/.test(user)) {
+      return { email: null, error: "Notandanafn má ekki innihalda @ eða bil." };
+    }
+    return { email: `${user.toLowerCase()}@${domain.toLowerCase()}` };
+  }
+  if (domain && !user) return { email: null }; // ekkert notandanafn = ekkert netfang
+  return { email: str(formData.get("email")) };
+}
+
 function translateEmpError(msg: string): string {
   if (msg.includes("EMAIL_EXISTS")) return "Netfangið er þegar í notkun (hjá öðrum notanda).";
   if (msg.includes("WEAK_PASSWORD")) return "Lykilorð verður að vera a.m.k. 6 stafir.";
@@ -58,6 +72,9 @@ export async function createEmployee(
 ): Promise<EmployeeFormState> {
   const supabase = await createClient();
   const password = str(formData.get("password"));
+  const resolved = resolveEmail(formData);
+  if (resolved.error) return { error: resolved.error };
+  const email = resolved.email;
 
   // Ef lykilorð er gefið → stofna líka innskráningu (Auth-notanda)
   const { data, error } = password
@@ -65,7 +82,7 @@ export async function createEmployee(
         p_full_name: str(formData.get("full_name")),
         p_employee_no: str(formData.get("employee_no")),
         p_phone: str(formData.get("phone")),
-        p_email: str(formData.get("email")),
+        p_email: email,
         p_national_id: str(formData.get("national_id")),
         p_password: password,
       })
@@ -73,7 +90,7 @@ export async function createEmployee(
         p_full_name: str(formData.get("full_name")),
         p_employee_no: str(formData.get("employee_no")),
         p_phone: str(formData.get("phone")),
-        p_email: str(formData.get("email")),
+        p_email: email,
         p_national_id: str(formData.get("national_id")),
       });
   if (error) return { error: translateEmpError(error.message) };
@@ -91,7 +108,7 @@ export async function createEmployee(
   // Innhólf í appinu (hópur 2)
   const mailErr = await syncMailInbox(
     supabase,
-    str(formData.get("email")),
+    email,
     formData.get("mail_inbox") != null
   );
   if (mailErr) return { error: mailErr };
@@ -106,11 +123,15 @@ export async function updateEmployee(
   formData: FormData
 ): Promise<EmployeeFormState> {
   const supabase = await createClient();
+  const resolved = resolveEmail(formData);
+  if (resolved.error) return { error: resolved.error };
+  const email = resolved.email;
+
   const { error } = await supabase.rpc("update_employee", {
     p_id: id,
     p_full_name: str(formData.get("full_name")),
     p_phone: str(formData.get("phone")),
-    p_email: str(formData.get("email")),
+    p_email: email,
     p_status: str(formData.get("status")),
   });
   if (error) return { error: translateEmpError(error.message) };
@@ -134,7 +155,7 @@ export async function updateEmployee(
   // Innhólf í appinu (hópur 2)
   const mailErr = await syncMailInbox(
     supabase,
-    str(formData.get("email")),
+    email,
     formData.get("mail_inbox") != null
   );
   if (mailErr) return { error: mailErr };

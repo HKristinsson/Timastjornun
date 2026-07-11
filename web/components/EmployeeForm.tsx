@@ -24,14 +24,23 @@ export default function EmployeeForm({
   projects,
   defaults = {},
   isEdit = false,
+  domain = null,
 }: {
   action: (prev: EmployeeFormState, formData: FormData) => Promise<EmployeeFormState>;
   projects: ProjectOption[];
   defaults?: EmployeeDefaults;
   isEdit?: boolean;
+  domain?: string | null;
 }) {
   const assigned = new Set(defaults.assignedProjectIds ?? []);
   const [state, formAction, pending] = useActionState(action, null);
+
+  // Lén félagsins stýrir netfanginu: notandanafn@lén (= innskráning starfsmanns)
+  const emailPrefix =
+    domain && defaults.email?.toLowerCase().endsWith(`@${domain.toLowerCase()}`)
+      ? defaults.email.slice(0, defaults.email.length - domain.length - 1)
+      : null;
+  const useDomainEmail = !!domain && (!defaults.email || emailPrefix !== null);
   return (
     <form action={formAction} className="max-w-2xl space-y-5">
       <div>
@@ -79,12 +88,33 @@ export default function EmployeeForm({
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Netfang</label>
-          <input
-            name="email"
-            type="email"
-            defaultValue={defaults.email ?? ""}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
+          {useDomainEmail ? (
+            <>
+              <div className="flex items-center overflow-hidden rounded-lg border border-slate-300 focus-within:border-brand">
+                <input
+                  name="email_user"
+                  defaultValue={emailPrefix ?? ""}
+                  placeholder="notandanafn"
+                  autoCapitalize="none"
+                  className="min-w-0 flex-1 px-3 py-2 text-sm outline-none"
+                />
+                <span className="shrink-0 border-l border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-500">
+                  @{domain}
+                </span>
+              </div>
+              <input type="hidden" name="email_domain" value={domain ?? ""} />
+              <p className="mt-1 text-xs text-slate-500">
+                Netfangið verður jafnframt innskráning starfsmannsins.
+              </p>
+            </>
+          ) : (
+            <input
+              name="email"
+              type="email"
+              defaultValue={defaults.email ?? ""}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          )}
         </div>
       </div>
 
