@@ -92,14 +92,23 @@ export default function CompaniesPage() {
     }
   }
 
+  // Admin-netfang: notandanafn@lén félagsins ef lén er slegið inn, annars frjálst
+  const cleanDomain = domain.trim().toLowerCase();
+  const effectiveAdminEmail = cleanDomain
+    ? `${adminEmail.trim().toLowerCase()}@${cleanDomain}`
+    : adminEmail.trim().toLowerCase();
+  const adminEmailValid = cleanDomain
+    ? adminEmail.trim() !== "" && !adminEmail.includes("@") && !/\s/.test(adminEmail)
+    : adminEmail.includes("@");
+
   async function create() {
     setError(null);
     setNotice(null);
     setBusy(true);
     const { error } = await createClient().rpc("create_company", {
       p_name: name.trim(),
-      p_domain: domain.trim().toLowerCase() || null,
-      p_admin_email: adminEmail.trim().toLowerCase(),
+      p_domain: cleanDomain || null,
+      p_admin_email: effectiveAdminEmail,
       p_admin_password: adminPassword,
       p_max_employees: parseInt(seats, 10) || 10,
     });
@@ -112,6 +121,8 @@ export default function CompaniesPage() {
           ? "Lykilorð verður að vera a.m.k. 6 stafir."
           : error.message.includes("BAD_SEATS")
           ? "Fjöldi starfsmanna verður að vera a.m.k. 1."
+          : error.message.includes("DOMAIN_MISMATCH")
+          ? error.message.replace(/^.*DOMAIN_MISMATCH:\s*/, "")
           : error.message
       );
       return;
@@ -549,12 +560,32 @@ export default function CompaniesPage() {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Netfang admin</label>
-              <input
-                type="email"
-                value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
-                className={field}
-              />
+              {cleanDomain ? (
+                <>
+                  <div className="flex items-center overflow-hidden rounded-lg border border-slate-300 focus-within:border-brand">
+                    <input
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      placeholder="notandanafn"
+                      autoCapitalize="none"
+                      className="min-w-0 flex-1 px-3 py-2 text-sm outline-none"
+                    />
+                    <span className="shrink-0 border-l border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-500">
+                      @{cleanDomain}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Admin fær netfang á léni félagsins — það er innskráningin hans.
+                  </p>
+                </>
+              ) : (
+                <input
+                  type="email"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  className={field}
+                />
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Lykilorð admin</label>
@@ -583,9 +614,7 @@ export default function CompaniesPage() {
           </div>
           <button
             onClick={create}
-            disabled={
-              busy || !name.trim() || !adminEmail.includes("@") || adminPassword.length < 6
-            }
+            disabled={busy || !name.trim() || !adminEmailValid || adminPassword.length < 6}
             className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
           >
             {busy ? "Stofna…" : "Stofna félag + admin"}
