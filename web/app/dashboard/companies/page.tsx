@@ -56,15 +56,22 @@ export default function CompaniesPage() {
   const [edit, setEdit] = useState<CompanyEdit | null>(null);
   const [editErr, setEditErr] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [actingAs, setActingAs] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data, error } = await createClient().rpc("su_companies_overview");
+    const supabase = createClient();
+    const [{ data, error }, { data: acting }] = await Promise.all([
+      supabase.rpc("su_companies_overview"),
+      supabase.rpc("su_acting_tenant"),
+    ]);
     if (error) {
       setAllowed(false);
       return;
     }
     setAllowed(true);
     setCompanies((data ?? []) as CompanyRow[]);
+    const rows = (acting ?? []) as { id: string; name: string }[];
+    setActingAs(rows[0]?.name ?? null);
   }, []);
 
   useEffect(() => {
@@ -494,7 +501,12 @@ export default function CompaniesPage() {
         </div>
       )}
 
-      {!showCreate ? (
+      {actingAs ? (
+        <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+          Þú ert að vinna sem <strong>{actingAs}</strong> — til að stofna nýtt félag
+          þarftu fyrst að hætta því (gula borðanum efst).
+        </p>
+      ) : !showCreate ? (
         <button
           onClick={() => {
             setShowCreate(true);
