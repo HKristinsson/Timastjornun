@@ -124,6 +124,16 @@ export default function MeHome() {
       </div>
 
       <CardLink
+        href="/me/sick"
+        title="Skrá veikindi"
+        subtitle="Tilkynna veikindadaga til verkstjóra"
+        icon={
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z" />
+          </svg>
+        }
+      />
+      <CardLink
         href="/me/timesheet"
         title="Tímayfirlit"
         subtitle="Skráðir tímar og staða samþykktar"

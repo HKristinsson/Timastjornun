@@ -153,6 +153,30 @@ export default function CompaniesPage() {
     window.location.href = "/dashboard";
   }
 
+  async function deleteCompany(c: CompanyRow) {
+    const typed = window.prompt(
+      `Þetta EYÐIR félaginu, öllum starfsmönnum þess, verkefnum, tímaskráningum og pósti — óafturkræft.\n\nSláðu inn nafn félagsins („${c.name}") til að staðfesta:`
+    );
+    if (typed === null) return;
+    if (typed.trim() !== c.name) {
+      setEditErr("Nafnið passaði ekki — engu var eytt.");
+      return;
+    }
+    const { error } = await createClient().rpc("su_delete_company", { p_id: c.id });
+    if (error) {
+      setEditErr(
+        error.message.includes("OWN_COMPANY")
+          ? "Ekki er hægt að eyða eigin félagi."
+          : error.message
+      );
+      return;
+    }
+    setEdit(null);
+    setEditErr(null);
+    setNotice(`Félaginu „${c.name}" var eytt.`);
+    load();
+  }
+
   async function saveEdit() {
     if (!edit) return;
     setEditErr(null);
@@ -415,7 +439,7 @@ export default function CompaniesPage() {
                             </select>
                           </div>
                         </div>
-                        <div className="mt-3 flex gap-2">
+                        <div className="mt-3 flex items-center gap-2">
                           <button
                             onClick={saveEdit}
                             disabled={!edit.name.trim()}
@@ -432,7 +456,18 @@ export default function CompaniesPage() {
                           >
                             Hætta
                           </button>
+                          <span className="flex-1" />
+                          <button
+                            onClick={() => deleteCompany(c)}
+                            className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                          >
+                            🗑 Eyða félagi
+                          </button>
                         </div>
+                        <p className="mt-2 text-xs text-slate-400">
+                          „Óvirkt" lokar á alla notendur félagsins án þess að eyða gögnum.
+                          Eyðing er óafturkræf og fjarlægir allt sem tilheyrir félaginu.
+                        </p>
                       </td>
                     </tr>
                   )}
