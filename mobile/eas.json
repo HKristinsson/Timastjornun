@@ -33,7 +33,10 @@
     "production": {
       "ios": {
         "ascAppId": "6792385692",
-        "appleTeamId": "X32THG4FS9"
+        "appleTeamId": "X32THG4FS9",
+        "ascApiKeyPath": "credentials/AuthKey_3JC7F4C5Z6.p8",
+        "ascApiKeyId": "3JC7F4C5Z6",
+        "ascApiKeyIssuerId": "84d563fe-b866-4d12-82ee-71ca84b46e4b"
       }
     }
   }
