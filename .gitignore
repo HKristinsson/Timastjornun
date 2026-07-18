@@ -10,6 +10,13 @@ build/
 # Env / leyndarmál
 .env
 .env*.local
+*.p8
+AuthKey_*.p8
+mobile/credentials/
+mobile/credentials.json
+*.p12
+*.mobileprovision
+*.cer
 
 # Supabase
 supabase/.branches/
