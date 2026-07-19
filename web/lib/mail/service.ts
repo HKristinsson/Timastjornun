@@ -106,6 +106,17 @@ export async function deleteOutbound(emailId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+// Eyða mörgum í einu
+export async function deleteInboundMany(ids: string[]): Promise<void> {
+  const { error } = await createClient().rpc("mail_delete_inbound_many", { p_ids: ids });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteOutboundMany(ids: string[]): Promise<void> {
+  const { error } = await createClient().rpc("mail_delete_outbound_many", { p_ids: ids });
+  if (error) throw new Error(error.message);
+}
+
 // Merkja/afmerkja póst sem eftirlæti (stjarna)
 export async function setStar(emailId: string, star: boolean): Promise<void> {
   const { error } = await createClient().rpc("mail_set_star", {

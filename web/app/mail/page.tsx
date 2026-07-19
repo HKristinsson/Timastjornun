@@ -3,7 +3,13 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { listInbox, listSent, setStar } from "@/lib/mail/service";
+import {
+  listInbox,
+  listSent,
+  setStar,
+  deleteInboundMany,
+  deleteOutboundMany,
+} from "@/lib/mail/service";
 import type { InboundEmail, OutboundEmail } from "@/lib/mail/types";
 import { Avatar, niceDate, TestBadge } from "./ui";
 
@@ -55,6 +61,45 @@ function MailHubInner() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [newestFirst, setNewestFirst] = useState(true);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
+
+  function toggleSelected(id: string) {
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+
+  function exitSelect() {
+    setSelecting(false);
+    setSelected([]);
+  }
+
+  async function deleteSelected() {
+    if (selected.length === 0) return;
+    if (
+      !window.confirm(
+        `Eyða ${selected.length} skeyti${selected.length === 1 ? "" : "um"} úr ${
+          box === "inbox" ? "innhólfinu" : "úthólfinu"
+        } þínu?`
+      )
+    )
+      return;
+    setDeleting(true);
+    try {
+      if (box === "inbox") {
+        await deleteInboundMany(selected);
+        setEmails((arr) => arr.filter((e) => !selected.includes(e.id)));
+      } else {
+        await deleteOutboundMany(selected);
+        setSent((arr) => arr.filter((e) => !selected.includes(e.id)));
+      }
+      exitSelect();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Villa við eyðingu.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     Promise.all([listInbox(), listSent()])
@@ -151,7 +196,10 @@ function MailHubInner() {
         ).map((t) => (
           <button
             key={t.key}
-            onClick={() => router.replace(t.key === "sent" ? "/mail?box=sent" : "/mail")}
+            onClick={() => {
+              exitSelect();
+              router.replace(t.key === "sent" ? "/mail?box=sent" : "/mail");
+            }}
             className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
               box === t.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
             }`}
@@ -184,6 +232,16 @@ function MailHubInner() {
             <path d={newestFirst ? "M12 5v14 M19 12l-7 7-7-7" : "M12 19V5 M5 12l7-7 7 7"} />
           </svg>
           {newestFirst ? "Nýjast" : "Elst"}
+        </button>
+        <button
+          onClick={() => (selecting ? exitSelect() : setSelecting(true))}
+          className={`inline-flex items-center rounded-xl px-3 text-xs font-semibold ring-1 transition-colors ${
+            selecting
+              ? "bg-slate-700 text-white ring-slate-700"
+              : "bg-white text-slate-600 ring-slate-200"
+          }`}
+        >
+          {selecting ? "Hætta við" : "Velja"}
         </button>
       </div>
 
@@ -237,10 +295,31 @@ function MailHubInner() {
               <Link
                 key={e.id}
                 href={`/mail/${e.id}`}
+                onClick={(ev) => {
+                  if (selecting) {
+                    ev.preventDefault();
+                    toggleSelected(e.id);
+                  }
+                }}
                 className={`flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-slate-50 active:bg-slate-100 ${
                   i > 0 ? "border-t border-slate-100" : ""
                 }`}
               >
+                {selecting && (
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                      selected.includes(e.id)
+                        ? "border-red-600 bg-red-600 text-white"
+                        : "border-slate-300 bg-white"
+                    }`}
+                  >
+                    {selected.includes(e.id) && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    )}
+                  </span>
+                )}
                 <div className="relative">
                   <Avatar name={e.sender_name || e.sender_email} />
                   {!e.read_at && (
@@ -301,10 +380,31 @@ function MailHubInner() {
               <Link
                 key={e.id}
                 href={`/mail/sent/${e.id}`}
+                onClick={(ev) => {
+                  if (selecting) {
+                    ev.preventDefault();
+                    toggleSelected(e.id);
+                  }
+                }}
                 className={`flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-slate-50 active:bg-slate-100 ${
                   i > 0 ? "border-t border-slate-100" : ""
                 }`}
               >
+                {selecting && (
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                      selected.includes(e.id)
+                        ? "border-red-600 bg-red-600 text-white"
+                        : "border-slate-300 bg-white"
+                    }`}
+                  >
+                    {selected.includes(e.id) && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    )}
+                  </span>
+                )}
                 <Avatar name={e.to_email} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
@@ -330,6 +430,22 @@ function MailHubInner() {
               </Link>
             );
           })}
+        </div>
+      )}
+
+      {/* Föst eyðingarstika í vali (fyrir ofan botnvalmyndina) */}
+      {selecting && (
+        <div className="fixed inset-x-0 bottom-[72px] z-30 mx-auto max-w-md px-4 pb-[env(safe-area-inset-bottom)]">
+          <button
+            onClick={deleteSelected}
+            disabled={selected.length === 0 || deleting}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-3.5 text-[15px] font-semibold text-white shadow-lg transition-colors hover:bg-red-700 disabled:opacity-50"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M10 11v6 M14 11v6" />
+            </svg>
+            {deleting ? "Eyði…" : `Eyða völdum (${selected.length})`}
+          </button>
         </div>
       )}
     </div>

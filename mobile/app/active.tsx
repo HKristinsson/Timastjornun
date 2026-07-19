@@ -152,6 +152,16 @@ export default function Active() {
 
   return (
     <View style={[styles.container, warning && styles.containerWarn]}>
+      {/* Skráningin heldur áfram í bakgrunni — notandinn er frjáls um appið */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => router.replace("/home")}>
+          <Text style={styles.topLink}>‹ Heim</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/messages")}>
+          <Text style={styles.topLink}>💬 Skilaboð</Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.label}>VIRK SKRÁNING</Text>
       <Text style={styles.project}>
         {entry.project_no} {entry.project_name}
@@ -199,7 +209,14 @@ function fmt(totalSec: number): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, paddingTop: 80, alignItems: "center", backgroundColor: "#f8fafc" },
+  container: { flex: 1, padding: 24, paddingTop: 60, alignItems: "center", backgroundColor: "#f8fafc" },
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignSelf: "stretch",
+    marginBottom: 20,
+  },
+  topLink: { color: "#2563eb", fontSize: 16, fontWeight: "600" },
   containerWarn: { backgroundColor: "#fff7ed" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   label: { fontSize: 12, color: "#94a3b8", fontWeight: "700" },

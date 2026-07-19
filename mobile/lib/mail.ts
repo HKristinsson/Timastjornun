@@ -97,6 +97,17 @@ export async function deleteSentMessage(outboundId: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+// Eyða mörgum í einu
+export async function deleteMessagesMany(ids: string[]): Promise<void> {
+  const { error } = await supabase.rpc("mail_delete_inbound_many", { p_ids: ids });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteSentMany(ids: string[]): Promise<void> {
+  const { error } = await supabase.rpc("mail_delete_outbound_many", { p_ids: ids });
+  if (error) throw new Error(error.message);
+}
+
 export interface CompanyUser {
   email: string;
   full_name: string;
@@ -115,12 +126,60 @@ export function splitRecipients(input: string): string[] {
     .filter((s) => s.includes("@"));
 }
 
-export async function sendMessage(to: string, subject: string, body: string): Promise<void> {
-  const { error } = await supabase.rpc("mail_send", {
+export async function sendMessage(
+  to: string,
+  subject: string,
+  body: string
+): Promise<{ id: string }> {
+  const { data, error } = await supabase.rpc("mail_send", {
     p_to: to,
     p_subject: subject,
     p_body: body,
     p_reply_to: null,
+  });
+  if (error) throw new Error(error.message);
+  return data as { id: string };
+}
+
+// --- Viðhengi við sendingu ---------------------------------------------------
+
+// Hlaða mynd (base64) í Storage. Slóð verður að byrja á auth-uid (RLS-regla).
+export async function uploadAttachmentBase64(
+  base64: string,
+  filename: string,
+  contentType: string
+): Promise<string> {
+  const { data: session } = await supabase.auth.getUser();
+  const uid = session.user?.id;
+  if (!uid) throw new Error("Ekki innskráð(ur).");
+
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+  const { error } = await supabase.storage
+    .from("mail-attachments")
+    .upload(path, bytes.buffer as ArrayBuffer, { contentType });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+// Tengja upphlaðið viðhengi við sent skeyti (afritast á innhólf viðtakanda)
+export async function addOutboundAttachment(
+  outboundId: string,
+  filename: string,
+  contentType: string,
+  storagePath: string,
+  sizeBytes: number
+): Promise<void> {
+  const { error } = await supabase.rpc("mail_add_outbound_attachment", {
+    p_outbound_id: outboundId,
+    p_filename: filename,
+    p_content_type: contentType,
+    p_storage_path: storagePath,
+    p_size_bytes: sizeBytes,
   });
   if (error) throw new Error(error.message);
 }

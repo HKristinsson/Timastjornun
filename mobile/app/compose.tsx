@@ -7,14 +7,24 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import {
   sendMessage,
   splitRecipients,
   listCompanyUsers,
+  uploadAttachmentBase64,
+  addOutboundAttachment,
   type CompanyUser,
 } from "@/lib/mail";
+
+interface PendingPhoto {
+  uri: string;       // forskoðun
+  base64: string;    // gögnin sjálf
+  filename: string;
+}
 
 export default function Compose() {
   const router = useRouter();
@@ -25,6 +35,8 @@ export default function Compose() {
   const [colleagues, setColleagues] = useState<CompanyUser[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
   const [showPicker, setShowPicker] = useState(false);
+  const [photos, setPhotos] = useState<PendingPhoto[]>([]);
+  const [progress, setProgress] = useState<string | null>(null);
 
   useEffect(() => {
     listCompanyUsers().then(setColleagues).catch(() => {});
@@ -36,6 +48,48 @@ export default function Compose() {
     );
   }
 
+  async function takePhoto() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Myndavél", "Leyfðu aðgang að myndavélinni í Stillingum símans.");
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+      base64: true,
+    });
+    addAssets(res);
+  }
+
+  async function pickPhotos() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Myndasafn", "Leyfðu aðgang að myndasafninu í Stillingum símans.");
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+      base64: true,
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
+    });
+    addAssets(res);
+  }
+
+  function addAssets(res: ImagePicker.ImagePickerResult) {
+    if (res.canceled) return;
+    const added = res.assets
+      .filter((a) => a.base64)
+      .map((a, i) => ({
+        uri: a.uri,
+        base64: a.base64!,
+        filename: a.fileName ?? `mynd-${Date.now()}-${i}.jpg`,
+      }));
+    setPhotos((p) => [...p, ...added]);
+  }
+
   async function send() {
     const recipients = Array.from(new Set([...picked, ...splitRecipients(to)]));
     if (recipients.length === 0) {
@@ -44,14 +98,35 @@ export default function Compose() {
     }
     setBusy(true);
     try {
-      for (const r of recipients) {
-        await sendMessage(r, subject.trim(), body.trim());
+      // 1) Hlaða myndum upp einu sinni (sömu skrár fyrir alla viðtakendur)
+      const uploaded: { path: string; filename: string; size: number }[] = [];
+      for (let i = 0; i < photos.length; i++) {
+        setProgress(`Hleð upp mynd ${i + 1} af ${photos.length}…`);
+        const path = await uploadAttachmentBase64(
+          photos[i].base64,
+          photos[i].filename,
+          "image/jpeg"
+        );
+        uploaded.push({
+          path,
+          filename: photos[i].filename,
+          size: Math.round(photos[i].base64.length * 0.75),
+        });
+      }
+      // 2) Senda á hvern viðtakanda + tengja viðhengin
+      for (let i = 0; i < recipients.length; i++) {
+        setProgress(recipients.length > 1 ? `Sendi ${i + 1} af ${recipients.length}…` : "Sendi…");
+        const sent = await sendMessage(recipients[i], subject.trim(), body.trim());
+        for (const u of uploaded) {
+          await addOutboundAttachment(sent.id, u.filename, "image/jpeg", u.path, u.size);
+        }
       }
       // Eftir sendingu: beint í innhólfið
       router.replace("/messages");
     } catch (e) {
       Alert.alert("Villa", e instanceof Error ? e.message : "Tókst ekki að senda.");
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -138,12 +213,37 @@ export default function Compose() {
           style={[styles.input, styles.textarea]}
         />
 
+        <Text style={styles.label}>Myndir</Text>
+        {photos.length > 0 && (
+          <View style={styles.photoRow}>
+            {photos.map((p, i) => (
+              <View key={i} style={styles.photoWrap}>
+                <Image source={{ uri: p.uri }} style={styles.photo} />
+                <TouchableOpacity
+                  style={styles.photoRemove}
+                  onPress={() => setPhotos((arr) => arr.filter((_, j) => j !== i))}
+                >
+                  <Text style={styles.photoRemoveText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity style={styles.attachButton} onPress={takePhoto}>
+            <Text style={styles.attachButtonText}>📷 Taka mynd</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.attachButton} onPress={pickPhotos}>
+            <Text style={styles.attachButtonText}>🖼 Velja mynd</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity
           style={[styles.button, !canSend && styles.disabled]}
           disabled={!canSend}
           onPress={send}
         >
-          <Text style={styles.buttonText}>{busy ? "Sendi…" : "📤 Senda"}</Text>
+          <Text style={styles.buttonText}>{busy ? progress ?? "Sendi…" : "📤 Senda"}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -204,6 +304,31 @@ const styles = StyleSheet.create({
   checkmark: { color: "#fff", fontWeight: "800", fontSize: 13 },
   pickerName: { fontSize: 14, fontWeight: "600", color: "#0f172a" },
   pickerEmail: { fontSize: 12, color: "#94a3b8" },
+  photoRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
+  photoWrap: { position: "relative" },
+  photo: { width: 92, height: 92, borderRadius: 10, backgroundColor: "#f1f5f9" },
+  photoRemove: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(15,23,42,0.7)",
+    borderRadius: 11,
+    width: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoRemoveText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  attachButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+  },
+  attachButtonText: { color: "#334155", fontWeight: "600", fontSize: 14 },
   button: {
     backgroundColor: "#2563eb",
     borderRadius: 12,

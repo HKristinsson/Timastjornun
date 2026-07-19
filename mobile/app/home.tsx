@@ -7,9 +7,12 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { myAccess, listInbox, listAnnouncements } from "@/lib/mail";
 import { registerPush } from "@/lib/push";
+import { getCurrentFix } from "@/lib/location";
+import { stopProjectGeofence } from "@/lib/geofence";
 
 interface ActiveEntry {
   id: string;
@@ -89,6 +92,39 @@ export default function Home() {
     router.replace("/login");
   }
 
+  // Skrá út af verkefni beint af heimaskjá (rauður hnappur á stöðukorti)
+  function confirmCheckOut() {
+    if (!active) return;
+    Alert.alert("Skrá út", `Skrá þig út af ${active.project_name}?`, [
+      { text: "Hætta við", style: "cancel" },
+      {
+        text: "Skrá út",
+        style: "destructive",
+        onPress: async () => {
+          let fix: { lat: number; lng: number; accuracy: number | null } | null = null;
+          try {
+            fix = await getCurrentFix();
+          } catch {
+            // leyfum útskráningu þótt GPS náist ekki
+          }
+          const { error } = await supabase.rpc("check_out", {
+            p_time_entry_id: active.id,
+            p_lat: fix?.lat ?? null,
+            p_lng: fix?.lng ?? null,
+            p_accuracy: fix?.accuracy ?? null,
+            p_note: null,
+          });
+          if (error) {
+            Alert.alert("Villa", error.message);
+            return;
+          }
+          await stopProjectGeofence();
+          load();
+        },
+      },
+    ]);
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
@@ -108,12 +144,17 @@ export default function Home() {
             <Text style={styles.project}>
               {active.project_no} {active.project_name}
             </Text>
-            <TouchableOpacity
-              style={styles.buttonPrimary}
-              onPress={() => router.push("/active")}
-            >
-              <Text style={styles.buttonText}>Opna virka skráningu</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+              <TouchableOpacity
+                style={[styles.buttonPrimary, { flex: 1, marginTop: 0 }]}
+                onPress={() => router.push("/active")}
+              >
+                <Text style={styles.buttonText}>Opna skráningu</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.buttonCheckout} onPress={confirmCheckOut}>
+                <Text style={styles.buttonText}>⏹ Skrá út</Text>
+              </TouchableOpacity>
+            </View>
           </>
         ) : (
           <>
@@ -168,6 +209,7 @@ const styles = StyleSheet.create({
   project: { fontSize: 16, marginTop: 4, marginBottom: 8, color: "#1e293b" },
   muted: { color: "#94a3b8" },
   buttonPrimary: { backgroundColor: "#2563eb", borderRadius: 10, paddingVertical: 14, alignItems: "center", marginTop: 12 },
+  buttonCheckout: { backgroundColor: "#dc2626", borderRadius: 10, paddingVertical: 14, alignItems: "center", paddingHorizontal: 18 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   linkRow: {
     backgroundColor: "#fff",

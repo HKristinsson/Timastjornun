@@ -17,6 +17,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "is.reir.timaverk",
       "infoPlist": {
+        "NSCameraUsageDescription": "Appið notar myndavélina til að taka myndir og senda með skilaboðum.",
+        "NSPhotoLibraryUsageDescription": "Appið notar myndasafnið til að velja myndir og senda með skilaboðum.",
         "NSLocationWhenInUseUsageDescription": "Appið notar staðsetningu til að staðfesta að þú sért á vinnustað við tímaskráningu.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Appið fylgist með staðsetningu meðan þú ert innskráð(ur) til að staðfesta veru á vinnustað.",
         "UIBackgroundModes": [
@@ -41,6 +43,13 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Appið notar myndavélina til að taka myndir og senda með skilaboðum.",
+          "photosPermission": "Appið notar myndasafnið til að velja myndir og senda með skilaboðum."
+        }
+      ],
       [
         "expo-location",
         {
