@@ -9,6 +9,7 @@ import {
   listAttachments,
   getAttachmentUrl,
   setStar,
+  deleteInbound,
 } from "@/lib/mail/service";
 import type { InboundEmail, EmailAttachment } from "@/lib/mail/types";
 import { Avatar, TestBadge } from "../ui";
@@ -49,6 +50,19 @@ export default function ReadEmailPage() {
       })
       .catch(() => {});
   }, [id]);
+
+  async function removeEmail() {
+    if (!email) return;
+    if (!window.confirm("Eyða þessu skeyti úr innhólfinu þínu?")) return;
+    setBusy(true);
+    try {
+      await deleteInbound(email.id);
+      router.push("/mail");
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "Villa við eyðingu.");
+      setBusy(false);
+    }
+  }
 
   async function sendReply() {
     if (!email || !replyBody.trim()) return;
@@ -267,6 +281,16 @@ export default function ReadEmailPage() {
               <path d="m15 17 5-5-5-5 M20 12H8a4 4 0 0 0-4 4v4" />
             </svg>
             Áframsenda
+          </button>
+          <button
+            onClick={removeEmail}
+            disabled={busy}
+            aria-label="Eyða skeyti"
+            className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-white px-4 py-4 text-red-600 shadow-sm transition-colors hover:bg-red-50 disabled:opacity-50"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M10 11v6 M14 11v6" />
+            </svg>
           </button>
         </div>
       )}

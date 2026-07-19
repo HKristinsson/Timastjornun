@@ -9,6 +9,7 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { myAccess, listInbox, listAnnouncements } from "@/lib/mail";
+import { registerPush } from "@/lib/push";
 
 interface ActiveEntry {
   id: string;
@@ -53,6 +54,8 @@ export default function Home() {
   const [unreadAnn, setUnreadAnn] = useState(0);
 
   const load = useCallback(async () => {
+    // Skrá push-token tækisins (einu sinni) svo skilaboð berist þótt appið sé lokað
+    registerPush();
     setLoading(true);
     const { data } = await supabase
       .from("v_my_active_entry")

@@ -94,6 +94,18 @@ export async function listSent(): Promise<OutboundEmail[]> {
   return (data ?? []) as OutboundEmail[];
 }
 
+// Eyða skeyti úr eigin innhólfi (úthólfsafrit sendanda helst óbreytt)
+export async function deleteInbound(emailId: string): Promise<void> {
+  const { error } = await createClient().rpc("mail_delete_inbound", { p_id: emailId });
+  if (error) throw new Error(error.message);
+}
+
+// Eyða skeyti úr eigin úthólfi (innhólfsafrit viðtakanda helst óbreytt)
+export async function deleteOutbound(emailId: string): Promise<void> {
+  const { error } = await createClient().rpc("mail_delete_outbound", { p_id: emailId });
+  if (error) throw new Error(error.message);
+}
+
 // Merkja/afmerkja póst sem eftirlæti (stjarna)
 export async function setStar(emailId: string, star: boolean): Promise<void> {
   const { error } = await createClient().rpc("mail_set_star", {

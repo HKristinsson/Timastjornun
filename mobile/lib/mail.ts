@@ -85,6 +85,18 @@ export async function listSent(): Promise<OutboundMessage[]> {
   return (data ?? []) as OutboundMessage[];
 }
 
+// Eyða skeyti úr eigin innhólfi
+export async function deleteMessage(inboundId: string): Promise<void> {
+  const { error } = await supabase.rpc("mail_delete_inbound", { p_id: inboundId });
+  if (error) throw new Error(error.message);
+}
+
+// Eyða skeyti úr eigin úthólfi (afrit viðtakanda helst)
+export async function deleteSentMessage(outboundId: string): Promise<void> {
+  const { error } = await supabase.rpc("mail_delete_outbound", { p_id: outboundId });
+  if (error) throw new Error(error.message);
+}
+
 export interface CompanyUser {
   email: string;
   full_name: string;

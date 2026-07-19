@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   readMessage,
   sendMessage,
+  deleteMessage,
   listAttachments,
   attachmentUrl,
   type InboundMessage,
@@ -45,6 +46,24 @@ export default function ReadMessage() {
       setAtts(withUrls);
     });
   }, [id]);
+
+  function confirmDelete() {
+    Alert.alert("Eyða skeyti", "Eyða þessu skeyti úr innhólfinu þínu?", [
+      { text: "Hætta við", style: "cancel" },
+      {
+        text: "Eyða",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteMessage(id);
+            router.replace("/messages");
+          } catch (e) {
+            Alert.alert("Villa", e instanceof Error ? e.message : "Tókst ekki að eyða.");
+          }
+        },
+      },
+    ]);
+  }
 
   async function sendReply() {
     if (!msg || !reply.trim()) return;
@@ -126,9 +145,17 @@ export default function ReadMessage() {
           </View>
         </View>
       ) : (
-        <TouchableOpacity style={styles.button} onPress={() => setReplying(true)}>
-          <Text style={styles.buttonText}>↩️ Svara</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity
+            style={[styles.button, { flex: 1 }]}
+            onPress={() => setReplying(true)}
+          >
+            <Text style={styles.buttonText}>↩️ Svara</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.buttonDanger} onPress={confirmDelete}>
+            <Text style={styles.buttonDangerText}>🗑 Eyða</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       <TouchableOpacity style={{ marginTop: 12 }} onPress={() => router.back()}>
@@ -162,6 +189,8 @@ const styles = StyleSheet.create({
   },
   button: { backgroundColor: "#2563eb", borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   buttonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  buttonDanger: { borderWidth: 1, borderColor: "#fecaca", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16, alignItems: "center", backgroundColor: "#fff" },
+  buttonDangerText: { color: "#dc2626", fontWeight: "700", fontSize: 15 },
   buttonGhost: { borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16 },
   buttonGhostText: { color: "#475569", fontWeight: "600" },
   disabled: { opacity: 0.5 },
