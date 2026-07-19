@@ -96,9 +96,16 @@ export default async function DashboardLayout({
   // Super án valins félags: aðeins Félög — allt annað krefst þess að félag sé valið
   const superNoActing = isSuper && !hasActing;
   const items: NavItem[] = superNoActing
-    ? [{ label: "Félög", href: "/dashboard/companies" }]
+    ? [
+        { label: "Félög", href: "/dashboard/companies" },
+        { label: "Ofurnotendur", href: "/dashboard/supers" },
+      ]
     : isSuper
-    ? [...nav, { label: "Félög", href: "/dashboard/companies" }]
+    ? [
+        ...nav,
+        { label: "Félög", href: "/dashboard/companies" },
+        { label: "Ofurnotendur", href: "/dashboard/supers" },
+      ]
     : nav;
 
   return (
