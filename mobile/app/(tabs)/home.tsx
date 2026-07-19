@@ -199,20 +199,12 @@ export default function Home() {
 
           <TouchableOpacity
             style={styles.allProjects}
-            onPress={() => router.push("/project-select")}
+            onPress={() => router.push("/projects")}
           >
             <Text style={styles.allProjectsText}>📋 Sjá öll verkefni</Text>
           </TouchableOpacity>
         </>
       )}
-
-      <TouchableOpacity style={styles.linkRow} onPress={() => router.push("/sick")}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.linkTitle}>🤒 Skrá veikindi</Text>
-          <Text style={styles.linkSub}>Tilkynna veikindadaga til verkstjóra</Text>
-        </View>
-        <Text style={styles.chev}>›</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }

@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+// Verkefni-flipinn: öll verkefni með fjarlægð og innskráningu (aldrei sjálfvirk
+// innskráning — starfsmaðurinn sér verkin og velur sjálfur), + veikindaskráning.
+import { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { supabase } from "@/lib/supabase";
 import {
@@ -30,30 +32,41 @@ interface MyProject {
   lng: number | null;
 }
 
-export default function ProjectSelect() {
+export default function Projects() {
   const router = useRouter();
   const [fix, setFix] = useState<Fix | null>(null);
   const [projects, setProjects] = useState<MyProject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasActive, setHasActive] = useState(false);
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data: act } = await supabase
+      .from("v_my_active_entry")
+      .select("id")
+      .maybeSingle();
+    setHasActive(!!act);
+
+    const { data } = await supabase
+      .from("v_my_projects")
+      .select("id, project_no, name, address, radius_m, lat, lng");
+    setProjects((data as MyProject[]) ?? []);
+
+    try {
       const ok = await ensureForegroundPermission();
-      if (!ok) {
-        Alert.alert("Staðsetning", "Kveiktu á staðsetningarheimild til að skrá þig inn.");
-        setLoading(false);
-        return;
-      }
-      const f = await getCurrentFix();
-      setFix(f);
-      const { data } = await supabase
-        .from("v_my_projects")
-        .select("id, project_no, name, address, radius_m, lat, lng");
-      setProjects((data as MyProject[]) ?? []);
-      setLoading(false);
-    })();
+      if (ok) setFix(await getCurrentFix());
+    } catch {
+      // GPS náðist ekki — listinn sést samt
+    }
+    setLoading(false);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   async function checkIn(p: MyProject) {
     if (!fix) return;
@@ -67,13 +80,9 @@ export default function ProjectSelect() {
     });
     if (error) {
       setCheckingIn(null);
-      // Server skilar skýrri villu (t.d. OUTSIDE_AREA / LOW_ACCURACY)
       Alert.alert("Ekki hægt að skrá inn", translateError(error.message));
       return;
     }
-
-    // Hefja bakgrunns-geofencing (skynjar að farið er af svæði þótt app sé lokað).
-    // Krefst "Always" staðsetningarheimildar + tilkynningaheimildar.
     try {
       await ensureBackgroundPermission();
       await Notifications.requestPermissionsAsync();
@@ -81,11 +90,10 @@ export default function ProjectSelect() {
         await startProjectGeofence(p.id, p.lat, p.lng, p.radius_m);
       }
     } catch {
-      // Bakgrunnsvöktun mistókst (t.d. heimild hafnað) — forgrunnsvöktun virkar samt.
+      // Bakgrunnsvöktun mistókst — forgrunnsvöktun virkar samt
     }
-
     setCheckingIn(null);
-    router.replace("/active");
+    router.push("/active");
   }
 
   if (loading) {
@@ -101,10 +109,17 @@ export default function ProjectSelect() {
       style={styles.list}
       data={projects}
       keyExtractor={(p) => p.id}
+      ListHeaderComponent={
+        <TouchableOpacity style={styles.sickRow} onPress={() => router.push("/sick")}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sickTitle}>🤒 Skrá veikindi</Text>
+            <Text style={styles.sickSub}>Tilkynna veikindadaga til verkstjóra</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </TouchableOpacity>
+      }
       ListEmptyComponent={
-        <Text style={styles.muted}>
-          Engin verkefni úthlutuð (eða Supabase ekki tengt).
-        </Text>
+        <Text style={styles.muted}>Engin verkefni úthlutuð.</Text>
       }
       renderItem={({ item }) => {
         const dist =
@@ -126,19 +141,25 @@ export default function ProjectSelect() {
                 ? `Innan svæðis (${dist} m)`
                 : `${dist} m í burtu`}
             </Text>
-            <TouchableOpacity
-              style={[styles.button, !inside && styles.buttonDisabled]}
-              disabled={!inside || checkingIn === item.id}
-              onPress={() => checkIn(item)}
-            >
-              {checkingIn === item.id ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>
-                  {inside ? "Skrá inn" : "Of langt"}
-                </Text>
-              )}
-            </TouchableOpacity>
+            {hasActive ? (
+              <Text style={styles.activeNote}>
+                Þú ert þegar innskráð(ur) á verk — skráðu þig fyrst út.
+              </Text>
+            ) : (
+              <TouchableOpacity
+                style={[styles.button, !inside && styles.buttonDisabled]}
+                disabled={!inside || checkingIn === item.id}
+                onPress={() => checkIn(item)}
+              >
+                {checkingIn === item.id ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>
+                    {inside ? "Skrá inn" : "Of langt í burtu"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         );
       }}
@@ -156,13 +177,26 @@ function translateError(msg: string): string {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  list: { backgroundColor: "#f8fafc", padding: 16 },
+  list: { backgroundColor: "#f1f5f9", padding: 16 },
   muted: { color: "#94a3b8", textAlign: "center", marginTop: 40 },
+  sickRow: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  sickTitle: { fontSize: 16, fontWeight: "600", color: "#0f172a" },
+  sickSub: { fontSize: 13, color: "#64748b", marginTop: 2 },
+  chev: { fontSize: 22, color: "#cbd5e1" },
   card: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 12 },
   projName: { fontSize: 16, fontWeight: "600" },
   addr: { color: "#64748b", marginTop: 2 },
   inside: { color: "#16a34a", marginTop: 8 },
   outside: { color: "#64748b", marginTop: 8 },
+  activeNote: { color: "#94a3b8", marginTop: 10, fontSize: 13 },
   button: { backgroundColor: "#2563eb", borderRadius: 10, paddingVertical: 12, alignItems: "center", marginTop: 12 },
   buttonDisabled: { backgroundColor: "#cbd5e1" },
   buttonText: { color: "#fff", fontWeight: "600" },

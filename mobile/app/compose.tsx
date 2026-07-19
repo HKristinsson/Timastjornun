@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import PhotoAnnotator from "@/components/PhotoAnnotator";
 import {
   sendMessage,
   splitRecipients,
@@ -24,6 +25,8 @@ interface PendingPhoto {
   uri: string;       // forskoðun
   base64: string;    // gögnin sjálf
   filename: string;
+  width?: number;
+  height?: number;
 }
 
 export default function Compose() {
@@ -37,6 +40,7 @@ export default function Compose() {
   const [showPicker, setShowPicker] = useState(false);
   const [photos, setPhotos] = useState<PendingPhoto[]>([]);
   const [progress, setProgress] = useState<string | null>(null);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
 
   useEffect(() => {
     listCompanyUsers().then(setColleagues).catch(() => {});
@@ -86,6 +90,8 @@ export default function Compose() {
         uri: a.uri,
         base64: a.base64!,
         filename: a.fileName ?? `mynd-${Date.now()}-${i}.jpg`,
+        width: a.width,
+        height: a.height,
       }));
     setPhotos((p) => [...p, ...added]);
   }
@@ -218,7 +224,12 @@ export default function Compose() {
           <View style={styles.photoRow}>
             {photos.map((p, i) => (
               <View key={i} style={styles.photoWrap}>
-                <Image source={{ uri: p.uri }} style={styles.photo} />
+                <TouchableOpacity onPress={() => setEditIndex(i)}>
+                  <Image source={{ uri: p.uri }} style={styles.photo} />
+                  <View style={styles.photoEdit}>
+                    <Text style={styles.photoEditText}>✏️</Text>
+                  </View>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.photoRemove}
                   onPress={() => setPhotos((arr) => arr.filter((_, j) => j !== i))}
@@ -228,6 +239,25 @@ export default function Compose() {
               </View>
             ))}
           </View>
+        )}
+        {photos.length > 0 && (
+          <Text style={styles.hint}>Ýttu á mynd til að teikna eða skrifa á hana.</Text>
+        )}
+
+        {editIndex != null && photos[editIndex] && (
+          <PhotoAnnotator
+            visible
+            uri={photos[editIndex].uri}
+            imageWidth={photos[editIndex].width}
+            imageHeight={photos[editIndex].height}
+            onCancel={() => setEditIndex(null)}
+            onSave={(base64, uri) => {
+              setPhotos((arr) =>
+                arr.map((p, j) => (j === editIndex ? { ...p, base64, uri } : p))
+              );
+              setEditIndex(null);
+            }}
+          />
         )}
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity style={styles.attachButton} onPress={takePhoto}>
@@ -319,6 +349,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   photoRemoveText: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  photoEdit: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    backgroundColor: "rgba(15,23,42,0.7)",
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  photoEditText: { fontSize: 11 },
   attachButton: {
     flex: 1,
     borderWidth: 1,

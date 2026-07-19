@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import PhotoAnnotator from "@/components/PhotoAnnotator";
 import {
   readMessage,
   sendMessage,
@@ -28,6 +29,8 @@ interface PendingPhoto {
   uri: string;
   base64: string;
   filename: string;
+  width?: number;
+  height?: number;
 }
 
 interface AttView extends MessageAttachment {
@@ -43,6 +46,7 @@ export default function ReadMessage() {
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const [photos, setPhotos] = useState<PendingPhoto[]>([]);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
 
   useEffect(() => {
     readMessage(id).then(setMsg);
@@ -113,6 +117,8 @@ export default function ReadMessage() {
         uri: a.uri,
         base64: a.base64!,
         filename: a.fileName ?? `mynd-${Date.now()}-${i}.jpg`,
+        width: a.width,
+        height: a.height,
       }));
     setPhotos((p) => [...p, ...added]);
   }
@@ -202,7 +208,12 @@ export default function ReadMessage() {
             <View style={styles.photoRow}>
               {photos.map((p, i) => (
                 <View key={i} style={styles.photoWrap}>
-                  <Image source={{ uri: p.uri }} style={styles.photo} />
+                  <TouchableOpacity onPress={() => setEditIndex(i)}>
+                    <Image source={{ uri: p.uri }} style={styles.photo} />
+                    <View style={styles.photoEdit}>
+                      <Text style={styles.photoEditText}>✏️</Text>
+                    </View>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.photoRemove}
                     onPress={() => setPhotos((arr) => arr.filter((_, j) => j !== i))}
@@ -212,6 +223,22 @@ export default function ReadMessage() {
                 </View>
               ))}
             </View>
+          )}
+
+          {editIndex != null && photos[editIndex] && (
+            <PhotoAnnotator
+              visible
+              uri={photos[editIndex].uri}
+              imageWidth={photos[editIndex].width}
+              imageHeight={photos[editIndex].height}
+              onCancel={() => setEditIndex(null)}
+              onSave={(base64, uri) => {
+                setPhotos((arr) =>
+                  arr.map((p, j) => (j === editIndex ? { ...p, base64, uri } : p))
+                );
+                setEditIndex(null);
+              }}
+            />
           )}
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
             <TouchableOpacity style={styles.attachButton} onPress={takePhoto}>
@@ -295,6 +322,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   photoRemoveText: { color: "#fff", fontWeight: "800", fontSize: 11 },
+  photoEdit: {
+    position: "absolute",
+    bottom: 3,
+    right: 3,
+    backgroundColor: "rgba(15,23,42,0.7)",
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  photoEditText: { fontSize: 10 },
   attachButton: {
     flex: 1,
     borderWidth: 1,

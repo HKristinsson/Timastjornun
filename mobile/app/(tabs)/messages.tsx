@@ -9,11 +9,16 @@ import {
   Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Swipeable } from "react-native-gesture-handler";
 import {
   listInbox,
   listSent,
+  deleteMessage,
+  deleteSentMessage,
   deleteMessagesMany,
   deleteSentMany,
+  markRead,
+  markUnread,
   type InboundMessage,
   type OutboundMessage,
 } from "@/lib/mail";
@@ -111,6 +116,54 @@ export default function Messages() {
     );
   }
 
+  // Swipe til vinstri = eyða; swipe til hægri = merkja lesið/ólesið
+  async function swipeDelete(id: string, isSent: boolean) {
+    try {
+      if (isSent) await deleteSentMessage(id);
+      else await deleteMessage(id);
+      if (isSent) setSent((arr) => arr.filter((m) => m.id !== id));
+      else setInbox((arr) => arr.filter((m) => m.id !== id));
+    } catch (e) {
+      Alert.alert("Villa", e instanceof Error ? e.message : "Tókst ekki að eyða.");
+    }
+  }
+
+  async function swipeToggleRead(m: InboundMessage) {
+    try {
+      if (m.read_at) {
+        await markUnread(m.id);
+        setInbox((arr) =>
+          arr.map((x) => (x.id === m.id ? { ...x, read_at: null } : x))
+        );
+      } else {
+        await markRead(m.id);
+        setInbox((arr) =>
+          arr.map((x) =>
+            x.id === m.id ? { ...x, read_at: new Date().toISOString() } : x
+          )
+        );
+      }
+    } catch {
+      // þögult — næsta uppfærsla leiðréttir
+    }
+  }
+
+  function DeleteAction() {
+    return (
+      <View style={styles.swipeDelete}>
+        <Text style={styles.swipeText}>🗑 Eyða</Text>
+      </View>
+    );
+  }
+
+  function ReadAction({ read }: { read: boolean }) {
+    return (
+      <View style={styles.swipeRead}>
+        <Text style={styles.swipeText}>{read ? "● Ólesið" : "✓ Lesið"}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.tabs}>
@@ -161,31 +214,44 @@ export default function Messages() {
             !loading ? <Text style={styles.muted}>Innhólfið er tómt.</Text> : null
           }
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() =>
-                selecting ? toggleSelected(item.id) : router.push(`/message/${item.id}`)
-              }
-              onLongPress={() => !selecting && startSelect(item.id)}
+            <Swipeable
+              enabled={!selecting}
+              overshootLeft={false}
+              overshootRight={false}
+              renderRightActions={() => <DeleteAction />}
+              renderLeftActions={() => <ReadAction read={!!item.read_at} />}
+              onSwipeableOpen={(direction, swipeable) => {
+                swipeable.close();
+                if (direction === "right") swipeDelete(item.id, false);
+                else swipeToggleRead(item);
+              }}
             >
-              {selecting && <Checkbox on={selected.includes(item.id)} />}
-              {!item.read_at && !selecting && <View style={styles.dot} />}
-              <View style={styles.rowBody}>
-                <View style={styles.rowTop}>
-                  <Text
-                    style={[styles.sender, !item.read_at && styles.bold]}
-                    numberOfLines={1}
-                  >
-                    {item.sender_name || item.sender_email}
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() =>
+                  selecting ? toggleSelected(item.id) : router.push(`/message/${item.id}`)
+                }
+                onLongPress={() => !selecting && startSelect(item.id)}
+              >
+                {selecting && <Checkbox on={selected.includes(item.id)} />}
+                {!item.read_at && !selecting && <View style={styles.dot} />}
+                <View style={styles.rowBody}>
+                  <View style={styles.rowTop}>
+                    <Text
+                      style={[styles.sender, !item.read_at && styles.bold]}
+                      numberOfLines={1}
+                    >
+                      {item.sender_name || item.sender_email}
+                    </Text>
+                    <Text style={styles.time}>{when(item.received_at)}</Text>
+                  </View>
+                  <Text style={styles.subject} numberOfLines={1}>
+                    {item.is_starred ? "★ " : ""}
+                    {item.subject || "(ekkert efni)"}
                   </Text>
-                  <Text style={styles.time}>{when(item.received_at)}</Text>
                 </View>
-                <Text style={styles.subject} numberOfLines={1}>
-                  {item.is_starred ? "★ " : ""}
-                  {item.subject || "(ekkert efni)"}
-                </Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </Swipeable>
           )}
         />
       ) : (
@@ -197,26 +263,35 @@ export default function Messages() {
             !loading ? <Text style={styles.muted}>Engin send skeyti.</Text> : null
           }
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.row}
-              onPress={() => selecting && toggleSelected(item.id)}
-              onLongPress={() => !selecting && startSelect(item.id)}
-              disabled={!selecting && false}
+            <Swipeable
+              enabled={!selecting}
+              overshootRight={false}
+              renderRightActions={() => <DeleteAction />}
+              onSwipeableOpen={(direction, swipeable) => {
+                swipeable.close();
+                if (direction === "right") swipeDelete(item.id, true);
+              }}
             >
-              {selecting && <Checkbox on={selected.includes(item.id)} />}
-              <View style={styles.rowBody}>
-                <View style={styles.rowTop}>
-                  <Text style={styles.sender} numberOfLines={1}>
-                    Til: {item.to_email}
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => selecting && toggleSelected(item.id)}
+                onLongPress={() => !selecting && startSelect(item.id)}
+              >
+                {selecting && <Checkbox on={selected.includes(item.id)} />}
+                <View style={styles.rowBody}>
+                  <View style={styles.rowTop}>
+                    <Text style={styles.sender} numberOfLines={1}>
+                      Til: {item.to_email}
+                    </Text>
+                    <Text style={styles.time}>{when(item.created_at)}</Text>
+                  </View>
+                  <Text style={styles.subject} numberOfLines={1}>
+                    {item.subject || "(ekkert efni)"}
                   </Text>
-                  <Text style={styles.time}>{when(item.created_at)}</Text>
+                  <Text style={styles.status}>{STATUS[item.status] ?? item.status}</Text>
                 </View>
-                <Text style={styles.subject} numberOfLines={1}>
-                  {item.subject || "(ekkert efni)"}
-                </Text>
-                <Text style={styles.status}>{STATUS[item.status] ?? item.status}</Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </Swipeable>
           )}
         />
       )}
@@ -255,6 +330,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   selectHint: { fontSize: 12, color: "#94a3b8", flex: 1 },
+  swipeDelete: {
+    backgroundColor: "#dc2626",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 96,
+    marginRight: 16,
+    marginBottom: 8,
+    borderRadius: 14,
+  },
+  swipeRead: {
+    backgroundColor: "#2563eb",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 96,
+    marginLeft: 16,
+    marginBottom: 8,
+    borderRadius: 14,
+  },
+  swipeText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   selectToggle: { color: "#2563eb", fontWeight: "700", fontSize: 14, marginLeft: 8 },
   muted: { color: "#94a3b8", textAlign: "center", marginTop: 40 },
   row: {

@@ -85,6 +85,15 @@ export async function listSent(): Promise<OutboundMessage[]> {
   return (data ?? []) as OutboundMessage[];
 }
 
+// Merkja lesið/ólesið (swipe-aðgerðir)
+export async function markRead(id: string): Promise<void> {
+  await supabase.rpc("mail_mark_read", { p_id: id });
+}
+
+export async function markUnread(id: string): Promise<void> {
+  await supabase.rpc("mail_mark_unread", { p_id: id });
+}
+
 // Eyða skeyti úr eigin innhólfi
 export async function deleteMessage(inboundId: string): Promise<void> {
   const { error } = await supabase.rpc("mail_delete_inbound", { p_id: inboundId });
