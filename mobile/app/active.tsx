@@ -17,6 +17,8 @@ interface ActiveEntry {
   project_name: string;
   project_no: string;
   check_in_at: string;
+  task_no: string | null;
+  task_name: string | null;
 }
 
 const POLL_MS = 30_000; // staðsetning lesin á 30 sek fresti
@@ -38,7 +40,7 @@ export default function Active() {
   useEffect(() => {
     supabase
       .from("v_my_active_entry")
-      .select("id, project_name, project_no, check_in_at")
+      .select("id, project_name, project_no, check_in_at, task_no, task_name")
       .maybeSingle()
       .then(({ data }) => {
         if (!data) {
@@ -166,6 +168,11 @@ export default function Active() {
       <Text style={styles.project}>
         {entry.project_no} {entry.project_name}
       </Text>
+      {entry.task_no && (
+        <Text style={styles.task}>
+          ↳ {entry.task_no} {entry.task_name}
+        </Text>
+      )}
 
       <Text style={styles.timer}>{fmt(elapsed)}</Text>
 
@@ -221,6 +228,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   label: { fontSize: 12, color: "#94a3b8", fontWeight: "700" },
   project: { fontSize: 20, fontWeight: "600", marginTop: 8 },
+  task: { fontSize: 15, fontWeight: "600", color: "#2563eb", marginTop: 4 },
   timer: { fontSize: 56, fontWeight: "200", marginVertical: 24, fontVariant: ["tabular-nums"] },
   status: { fontSize: 16, color: "#16a34a" },
   muted: { color: "#94a3b8", marginTop: 8 },

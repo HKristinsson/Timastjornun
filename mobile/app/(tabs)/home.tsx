@@ -20,12 +20,15 @@ import {
   type Fix,
 } from "@/lib/location";
 import { startProjectGeofence } from "@/lib/geofence";
+import TaskPicker, { type ProjectTask } from "@/components/TaskPicker";
 
 interface ActiveEntry {
   id: string;
   project_name: string;
   project_no: string;
   check_in_at: string;
+  task_no: string | null;
+  task_name: string | null;
 }
 
 interface MyProject {
@@ -52,6 +55,8 @@ export default function Home() {
   const [fix, setFix] = useState<Fix | null>(null);
   const [nearby, setNearby] = useState<MyProject[]>([]);
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
+  const [taskProject, setTaskProject] = useState<MyProject | null>(null);
+  const [taskOptions, setTaskOptions] = useState<ProjectTask[]>([]);
 
   const load = useCallback(async () => {
     // Skrá push-token tækisins (einu sinni) svo skilaboð berist þótt appið sé lokað
@@ -60,7 +65,7 @@ export default function Home() {
 
     const { data } = await supabase
       .from("v_my_active_entry")
-      .select("id, project_name, project_no, check_in_at")
+      .select("id, project_name, project_no, check_in_at, task_no, task_name")
       .maybeSingle();
     const act = (data as ActiveEntry) ?? null;
     setActive(act);
@@ -100,8 +105,26 @@ export default function Home() {
     }, [load])
   );
 
+  // Ef verkefnið hefur undirnúmer velur starfsmaðurinn fyrst
   async function checkIn(p: MyProject) {
     if (!fix) return;
+    const { data: tasks } = await supabase
+      .from("project_tasks")
+      .select("id, task_no, name")
+      .eq("project_id", p.id)
+      .eq("active", true)
+      .order("task_no");
+    if (tasks && tasks.length > 0) {
+      setTaskOptions(tasks as ProjectTask[]);
+      setTaskProject(p);
+      return;
+    }
+    doCheckIn(p, null);
+  }
+
+  async function doCheckIn(p: MyProject, taskId: string | null) {
+    if (!fix) return;
+    setTaskProject(null);
     setCheckingIn(p.id);
     const { error } = await supabase.rpc("check_in", {
       p_project_id: p.id,
@@ -109,6 +132,7 @@ export default function Home() {
       p_lng: fix.lng,
       p_accuracy: fix.accuracy,
       p_note: null,
+      p_task_id: taskId,
     });
     if (error) {
       setCheckingIn(null);
@@ -156,6 +180,11 @@ export default function Home() {
             <Text style={styles.activeProject}>
               {active.project_no} {active.project_name}
             </Text>
+            {active.task_no && (
+              <Text style={styles.activeTask}>
+                ↳ {active.task_no} {active.task_name}
+              </Text>
+            )}
             <Text style={styles.activeTime}>⏱ {sinceText(active.check_in_at)}</Text>
           </View>
           <Text style={styles.activeChev}>›</Text>
@@ -205,6 +234,16 @@ export default function Home() {
           </TouchableOpacity>
         </>
       )}
+
+      {taskProject && (
+        <TaskPicker
+          visible
+          projectName={`${taskProject.project_no} ${taskProject.name}`}
+          tasks={taskOptions}
+          onPick={(taskId) => doCheckIn(taskProject, taskId)}
+          onCancel={() => setTaskProject(null)}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -242,6 +281,7 @@ const styles = StyleSheet.create({
   activeDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: "#fff" },
   activeTitle: { color: "#fecaca", fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
   activeProject: { color: "#fff", fontSize: 17, fontWeight: "700", marginTop: 2 },
+  activeTask: { color: "#fee2e2", fontSize: 14, fontWeight: "600", marginTop: 2 },
   activeTime: { color: "#fee2e2", fontSize: 14, marginTop: 4 },
   activeChev: { color: "#fecaca", fontSize: 28 },
   nearbyRow: {

@@ -21,6 +21,7 @@ import {
   type Fix,
 } from "@/lib/location";
 import { startProjectGeofence } from "@/lib/geofence";
+import TaskPicker, { type ProjectTask } from "@/components/TaskPicker";
 
 interface MyProject {
   id: string;
@@ -39,6 +40,8 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [hasActive, setHasActive] = useState(false);
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
+  const [taskProject, setTaskProject] = useState<MyProject | null>(null);
+  const [taskOptions, setTaskOptions] = useState<ProjectTask[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,8 +71,26 @@ export default function Projects() {
     }, [load])
   );
 
+  // Ef verkefnið hefur undirnúmer velur starfsmaðurinn fyrst
   async function checkIn(p: MyProject) {
     if (!fix) return;
+    const { data: tasks } = await supabase
+      .from("project_tasks")
+      .select("id, task_no, name")
+      .eq("project_id", p.id)
+      .eq("active", true)
+      .order("task_no");
+    if (tasks && tasks.length > 0) {
+      setTaskOptions(tasks as ProjectTask[]);
+      setTaskProject(p);
+      return;
+    }
+    doCheckIn(p, null);
+  }
+
+  async function doCheckIn(p: MyProject, taskId: string | null) {
+    if (!fix) return;
+    setTaskProject(null);
     setCheckingIn(p.id);
     const { error } = await supabase.rpc("check_in", {
       p_project_id: p.id,
@@ -77,6 +98,7 @@ export default function Projects() {
       p_lng: fix.lng,
       p_accuracy: fix.accuracy,
       p_note: null,
+      p_task_id: taskId,
     });
     if (error) {
       setCheckingIn(null);
@@ -105,6 +127,16 @@ export default function Projects() {
   }
 
   return (
+    <>
+    {taskProject && (
+      <TaskPicker
+        visible
+        projectName={`${taskProject.project_no} ${taskProject.name}`}
+        tasks={taskOptions}
+        onPick={(taskId) => doCheckIn(taskProject, taskId)}
+        onCancel={() => setTaskProject(null)}
+      />
+    )}
     <FlatList
       style={styles.list}
       data={projects}
@@ -164,6 +196,7 @@ export default function Projects() {
         );
       }}
     />
+    </>
   );
 }
 

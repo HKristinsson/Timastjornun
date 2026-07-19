@@ -8,6 +8,8 @@ interface EntryRow {
   employee_name: string;
   project_no: string;
   project_name: string;
+  task_no: string | null;
+  task_name: string | null;
   check_in_at: string;
   check_out_at: string | null;
   check_out_type: string | null;
@@ -28,7 +30,7 @@ async function getEntries(status: string, from?: string, to?: string): Promise<E
     let q = supabase
       .from("v_time_entries")
       .select(
-        "id, employee_name, project_no, project_name, check_in_at, check_out_at, check_out_type, worked_hours, status"
+        "id, employee_name, project_no, project_name, task_no, task_name, check_in_at, check_out_at, check_out_type, worked_hours, status"
       )
       .order("check_in_at", { ascending: false });
     if (status !== "all") q = q.eq("status", status);
@@ -132,6 +134,11 @@ export default async function TimeEntriesPage({
                   <td className="px-4 py-3">{e.employee_name}</td>
                   <td className="px-4 py-3 text-slate-600">
                     {e.project_no} {e.project_name}
+                    {e.task_no && (
+                      <span className="ml-1.5 rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
+                        {e.task_no} {e.task_name}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">{fmt(e.check_in_at)}</td>
                   <td className="px-4 py-3">

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ProjectForm, { type ManagerOption, type ProjectDefaults } from "@/components/ProjectForm";
+import ProjectTasks from "@/components/ProjectTasks";
 import { updateProject } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export default async function EditProjectPage({
     <div className="space-y-6">
       <h1 className="text-xl font-semibold">Breyta verkefni</h1>
       <ProjectForm action={action} managers={managers} defaults={project} isEdit />
+      <ProjectTasks projectId={id} />
     </div>
   );
 }
