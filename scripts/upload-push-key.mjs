@@ -80,13 +80,32 @@ if (!appIdent) {
   console.log("✅ App identifier til:", appIdent.id);
 }
 
-// 5) iOS app credentials með push-lyklinum
-const cred = await gql(
-  `mutation($appId: ID!, $appleAppIdentifierId: ID!, $input: IosAppCredentialsInput!) {
-     iosAppCredentials { createIosAppCredentials(appId: $appId, appleAppIdentifierId: $appleAppIdentifierId, iosAppCredentialsInput: $input) {
-       id pushKey { id keyIdentifier }
-     } }
+// 5) iOS app credentials: uppfæra ef til, annars stofna
+const existing = await gql(
+  `query($id: String!) {
+     app { byId(appId: $id) { iosAppCredentials { id pushKey { id keyIdentifier } } } }
    }`,
-  { appId: APP_ID, appleAppIdentifierId: appIdent.id, input: { appleTeamId: team.id, pushKeyId: pushKey.id } }
+  { id: APP_ID }
 );
-console.log("✅✅ iOS app credentials tengd:", JSON.stringify(cred.iosAppCredentials.createIosAppCredentials));
+const creds = existing.app.byId.iosAppCredentials;
+if (creds.length > 0) {
+  const upd = await gql(
+    `mutation($id: ID!, $pushKeyId: ID!) {
+       iosAppCredentials { setPushKey(id: $id, pushKeyId: $pushKeyId) {
+         id pushKey { id keyIdentifier }
+       } }
+     }`,
+    { id: creds[0].id, pushKeyId: pushKey.id }
+  );
+  console.log("✅✅ Push-lykli SKIPT ÚT:", JSON.stringify(upd.iosAppCredentials.setPushKey));
+} else {
+  const cred = await gql(
+    `mutation($appId: ID!, $appleAppIdentifierId: ID!, $input: IosAppCredentialsInput!) {
+       iosAppCredentials { createIosAppCredentials(appId: $appId, appleAppIdentifierId: $appleAppIdentifierId, iosAppCredentialsInput: $input) {
+         id pushKey { id keyIdentifier }
+       } }
+     }`,
+    { appId: APP_ID, appleAppIdentifierId: appIdent.id, input: { appleTeamId: team.id, pushKeyId: pushKey.id } }
+  );
+  console.log("✅✅ iOS app credentials tengd:", JSON.stringify(cred.iosAppCredentials.createIosAppCredentials));
+}
