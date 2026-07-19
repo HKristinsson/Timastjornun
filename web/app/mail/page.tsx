@@ -12,8 +12,8 @@ type Filter = "all" | "unread" | "starred";
 
 const SENT_STATUS: Record<string, { label: string; cls: string }> = {
   queued: { label: "Í bið", cls: "bg-slate-100 text-slate-600 ring-slate-200" },
-  sent: { label: "Sent", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
-  mock_sent: { label: "Sent (prófun)", cls: "bg-blue-50 text-blue-700 ring-blue-200" },
+  sent: { label: "Afhent", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
+  mock_sent: { label: "Í bið (ytra netfang)", cls: "bg-amber-50 text-amber-700 ring-amber-200" },
   failed: { label: "Mistókst", cls: "bg-red-50 text-red-700 ring-red-200" },
 };
 
@@ -129,7 +129,7 @@ function MailHubInner() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-[22px] font-bold tracking-tight">Tölvupóstur</h1>
+        <h1 className="text-[22px] font-bold tracking-tight">Skilaboð</h1>
         <Link
           href="/mail/compose"
           className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-dark"

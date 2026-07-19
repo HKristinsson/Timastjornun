@@ -137,7 +137,8 @@ function ComposeInner() {
             className={field}
           />
           <p className="mt-1 text-xs text-slate-400">
-            Margir viðtakendur: aðskildu netföng með kommu eða semíkommu.
+            Skeyti til samstarfsmanna (netfang í kerfinu) afhendast beint. Margir
+            viðtakendur: aðskildu með kommu eða semíkommu.
           </p>
         </div>
         <div>

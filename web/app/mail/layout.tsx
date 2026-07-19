@@ -58,7 +58,7 @@ export default function MailLayout({ children }: { children: React.ReactNode }) 
   const timeHref = access?.isManager ? "/dashboard" : "/me";
 
   const nav = [
-    ...(access?.hasMail ? [{ href: "/mail", label: "Póstur", icon: ICONS.mail }] : []),
+    ...(access?.hasMail ? [{ href: "/mail", label: "Skilaboð", icon: ICONS.mail }] : []),
     { href: "/mail/announcements", label: "Tilkynningar", icon: ICONS.bell },
     { href: timeHref, label: "Tímar", icon: ICONS.clock },
     { href: "/mail/more", label: "Meira", icon: ICONS.more },

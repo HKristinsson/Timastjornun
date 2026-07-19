@@ -14,6 +14,11 @@ export default function RootLayout() {
         <Stack.Screen name="project-select" options={{ headerShown: true, title: "Velja verkefni" }} />
         <Stack.Screen name="active" />
         <Stack.Screen name="timesheet" options={{ headerShown: true, title: "Tímayfirlit" }} />
+        <Stack.Screen name="messages" options={{ headerShown: true, title: "Skilaboð" }} />
+        <Stack.Screen name="message/[id]" options={{ headerShown: true, title: "Skeyti" }} />
+        <Stack.Screen name="compose" options={{ headerShown: true, title: "Nýtt skeyti" }} />
+        <Stack.Screen name="announcements" options={{ headerShown: true, title: "Tilkynningar" }} />
+        <Stack.Screen name="sick" options={{ headerShown: true, title: "Skrá veikindi" }} />
       </Stack>
     </>
   );
