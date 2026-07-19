@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -10,7 +10,14 @@ import {
   getAttachmentUrl,
   setStar,
   deleteInbound,
+  uploadAttachment,
+  addOutboundAttachment,
 } from "@/lib/mail/service";
+
+interface PendingFile {
+  file: File;
+  preview: string | null;
+}
 import type { InboundEmail, EmailAttachment } from "@/lib/mail/types";
 import { Avatar, TestBadge } from "../ui";
 
@@ -29,6 +36,27 @@ export default function ReadEmailPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const [attachments, setAttachments] = useState<AttachmentView[]>([]);
+  const [replyFiles, setReplyFiles] = useState<PendingFile[]>([]);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function addReplyFiles(list: FileList | null) {
+    if (!list) return;
+    for (const file of Array.from(list)) {
+      if (file.size > 10 * 1024 * 1024) {
+        setNotice(`„${file.name}" er yfir 10 MB hámarkinu.`);
+        continue;
+      }
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = () =>
+          setReplyFiles((a) => [...a, { file, preview: reader.result as string }]);
+        reader.readAsDataURL(file);
+      } else {
+        setReplyFiles((a) => [...a, { file, preview: null }]);
+      }
+    }
+  }
 
   useEffect(() => {
     readEmail(id)
@@ -68,12 +96,16 @@ export default function ReadEmailPage() {
     if (!email || !replyBody.trim()) return;
     setBusy(true);
     try {
-      await replyToEmail(
+      const sent = await replyToEmail(
         email.id,
         email.sender_email,
         `Re: ${email.subject ?? ""}`,
         replyBody.trim()
       );
+      for (const f of replyFiles) {
+        const path = await uploadAttachment(f.file);
+        await addOutboundAttachment(sent.id, f.file, path);
+      }
       // Eftir svar: beint í innhólfið
       router.push("/mail");
       return;
@@ -246,6 +278,74 @@ export default function ReadEmailPage() {
             className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-[15px] outline-none focus:border-brand focus:bg-white"
             placeholder="Skrifaðu svar…"
           />
+
+          {replyFiles.length > 0 && (
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {replyFiles.map((a, i) => (
+                <div
+                  key={i}
+                  className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                >
+                  {a.preview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={a.preview} alt={a.file.name} className="h-20 w-full object-cover" />
+                  ) : (
+                    <div className="flex h-20 items-center justify-center px-1">
+                      <span className="w-full truncate text-center text-[10px] text-slate-500">
+                        📎 {a.file.name}
+                      </span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setReplyFiles((arr) => arr.filter((_, j) => j !== i))}
+                    aria-label={`Fjarlægja ${a.file.name}`}
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900/70 text-[10px] text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-[13px] font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+            >
+              📷 Taka mynd
+            </button>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-[13px] font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+            >
+              📎 Velja skrá
+            </button>
+          </div>
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={(e) => {
+              addReplyFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            hidden
+            onChange={(e) => {
+              addReplyFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+
           <div className="mt-3 flex gap-2">
             <button
               onClick={sendReply}

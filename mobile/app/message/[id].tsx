@@ -11,15 +11,24 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import {
   readMessage,
   sendMessage,
   deleteMessage,
   listAttachments,
   attachmentUrl,
+  uploadAttachmentBase64,
+  addOutboundAttachment,
   type InboundMessage,
   type MessageAttachment,
 } from "@/lib/mail";
+
+interface PendingPhoto {
+  uri: string;
+  base64: string;
+  filename: string;
+}
 
 interface AttView extends MessageAttachment {
   url: string | null;
@@ -33,6 +42,7 @@ export default function ReadMessage() {
   const [replying, setReplying] = useState(false);
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
+  const [photos, setPhotos] = useState<PendingPhoto[]>([]);
 
   useEffect(() => {
     readMessage(id).then(setMsg);
@@ -65,11 +75,67 @@ export default function ReadMessage() {
     ]);
   }
 
+  async function takePhoto() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Myndavél", "Leyfðu aðgang að myndavélinni í Stillingum símans.");
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+      base64: true,
+    });
+    addAssets(res);
+  }
+
+  async function pickPhotos() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Myndasafn", "Leyfðu aðgang að myndasafninu í Stillingum símans.");
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.7,
+      base64: true,
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
+    });
+    addAssets(res);
+  }
+
+  function addAssets(res: ImagePicker.ImagePickerResult) {
+    if (res.canceled) return;
+    const added = res.assets
+      .filter((a) => a.base64)
+      .map((a, i) => ({
+        uri: a.uri,
+        base64: a.base64!,
+        filename: a.fileName ?? `mynd-${Date.now()}-${i}.jpg`,
+      }));
+    setPhotos((p) => [...p, ...added]);
+  }
+
   async function sendReply() {
     if (!msg || !reply.trim()) return;
     setBusy(true);
     try {
-      await sendMessage(msg.sender_email, `Re: ${msg.subject ?? ""}`, reply.trim());
+      const sent = await sendMessage(
+        msg.sender_email,
+        `Re: ${msg.subject ?? ""}`,
+        reply.trim()
+      );
+      for (const p of photos) {
+        const path = await uploadAttachmentBase64(p.base64, p.filename, "image/jpeg");
+        await addOutboundAttachment(
+          sent.id,
+          p.filename,
+          "image/jpeg",
+          path,
+          Math.round(p.base64.length * 0.75)
+        );
+      }
       // Eftir svar: beint í innhólfið
       router.replace("/messages");
       return;
@@ -131,6 +197,31 @@ export default function ReadMessage() {
             placeholder="Skrifaðu svar…"
             style={styles.input}
           />
+
+          {photos.length > 0 && (
+            <View style={styles.photoRow}>
+              {photos.map((p, i) => (
+                <View key={i} style={styles.photoWrap}>
+                  <Image source={{ uri: p.uri }} style={styles.photo} />
+                  <TouchableOpacity
+                    style={styles.photoRemove}
+                    onPress={() => setPhotos((arr) => arr.filter((_, j) => j !== i))}
+                  >
+                    <Text style={styles.photoRemoveText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+            <TouchableOpacity style={styles.attachButton} onPress={takePhoto}>
+              <Text style={styles.attachButtonText}>📷 Taka mynd</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.attachButton} onPress={pickPhotos}>
+              <Text style={styles.attachButtonText}>🖼 Velja mynd</Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
             <TouchableOpacity
               style={[styles.button, { flex: 1 }, (!reply.trim() || busy) && styles.disabled]}
@@ -189,6 +280,31 @@ const styles = StyleSheet.create({
   },
   button: { backgroundColor: "#2563eb", borderRadius: 12, paddingVertical: 14, alignItems: "center" },
   buttonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  photoRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  photoWrap: { position: "relative" },
+  photo: { width: 76, height: 76, borderRadius: 10, backgroundColor: "#f1f5f9" },
+  photoRemove: {
+    position: "absolute",
+    top: 3,
+    right: 3,
+    backgroundColor: "rgba(15,23,42,0.7)",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoRemoveText: { color: "#fff", fontWeight: "800", fontSize: 11 },
+  attachButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+  },
+  attachButtonText: { color: "#334155", fontWeight: "600", fontSize: 13 },
   buttonDanger: { borderWidth: 1, borderColor: "#fecaca", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16, alignItems: "center", backgroundColor: "#fff" },
   buttonDangerText: { color: "#dc2626", fontWeight: "700", fontSize: 15 },
   buttonGhost: { borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16 },
