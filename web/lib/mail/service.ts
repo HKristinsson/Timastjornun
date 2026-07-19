@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type {
   InboundEmail,
   OutboundEmail,
+  CompanyUser,
   Group2Recipient,
   EmailAttachment,
   Announcement,
@@ -100,6 +101,13 @@ export async function setStar(emailId: string, star: boolean): Promise<void> {
     p_star: star,
   });
   if (error) throw new Error(error.message);
+}
+
+// Allir virkir notendur míns félags (fyrir viðtakendalista í "Nýtt skeyti")
+export async function listCompanyUsers(): Promise<CompanyUser[]> {
+  const { data, error } = await createClient().rpc("mail_company_users");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as CompanyUser[];
 }
 
 // Senda á marga viðtakendur (komma/semíkomma aðskilið). Eitt skeyti per viðtakanda.

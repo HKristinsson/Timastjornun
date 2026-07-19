@@ -60,9 +60,9 @@ export default function ReadEmailPage() {
         `Re: ${email.subject ?? ""}`,
         replyBody.trim()
       );
-      setNotice("Svarið var sent og er sýnilegt undir Sent.");
-      setReplying(false);
-      setReplyBody("");
+      // Eftir svar: beint í innhólfið
+      router.push("/mail");
+      return;
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Villa við sendingu.");
     } finally {

@@ -51,9 +51,9 @@ export default function ReadMessage() {
     setBusy(true);
     try {
       await sendMessage(msg.sender_email, `Re: ${msg.subject ?? ""}`, reply.trim());
-      Alert.alert("Sent", "Svarið var sent.");
-      setReplying(false);
-      setReply("");
+      // Eftir svar: beint í innhólfið
+      router.replace("/messages");
+      return;
     } catch (e) {
       Alert.alert("Villa", e instanceof Error ? e.message : "Tókst ekki að senda.");
     } finally {

@@ -85,6 +85,17 @@ export async function listSent(): Promise<OutboundMessage[]> {
   return (data ?? []) as OutboundMessage[];
 }
 
+export interface CompanyUser {
+  email: string;
+  full_name: string;
+}
+
+// Allir virkir notendur míns félags (viðtakendalisti í "Nýtt skeyti")
+export async function listCompanyUsers(): Promise<CompanyUser[]> {
+  const { data } = await supabase.rpc("mail_company_users");
+  return (data ?? []) as CompanyUser[];
+}
+
 export function splitRecipients(input: string): string[] {
   return input
     .split(/[;,]/)

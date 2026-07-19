@@ -8,7 +8,9 @@ import {
   addOutboundAttachment,
   splitRecipients,
   readEmail,
+  listCompanyUsers,
 } from "@/lib/mail/service";
+import type { CompanyUser } from "@/lib/mail/types";
 
 const field =
   "w-full rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-[15px] outline-none focus:border-brand focus:bg-white";
@@ -31,6 +33,9 @@ function ComposeInner() {
   const searchParams = useSearchParams();
   const forwardId = searchParams.get("fwd");
   const [to, setTo] = useState("");
+  const [colleagues, setColleagues] = useState<CompanyUser[]>([]);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [showPicker, setShowPicker] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [attachments, setAttachments] = useState<Pending[]>([]);
@@ -39,6 +44,17 @@ function ComposeInner() {
   const [error, setError] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Samstarfsmenn félagsins í viðtakendalista
+  useEffect(() => {
+    listCompanyUsers().then(setColleagues).catch(() => {});
+  }, []);
+
+  function togglePicked(email: string) {
+    setPicked((p) =>
+      p.includes(email) ? p.filter((e) => e !== email) : [...p, email]
+    );
+  }
 
   // Áframsending: forfylla efni og texta úr upprunalega skeytinu
   useEffect(() => {
@@ -82,7 +98,9 @@ function ComposeInner() {
 
   async function send() {
     setError(null);
-    const recipients = splitRecipients(to);
+    const recipients = Array.from(
+      new Set([...picked, ...splitRecipients(to)])
+    );
     if (recipients.length === 0) {
       setError("Sláðu inn a.m.k. eitt gilt netfang.");
       return;
@@ -108,7 +126,8 @@ function ComposeInner() {
           await addOutboundAttachment(sent.id, u.file, u.path);
         }
       }
-      router.push("/mail/sent");
+      // Eftir sendingu: beint í innhólfið
+      router.push("/mail");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Villa við sendingu.");
       setBusy(false);
@@ -129,16 +148,90 @@ function ComposeInner() {
       <div className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/60">
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-slate-700">Til</label>
+
+          {/* Valdir viðtakendur af lista */}
+          {picked.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {picked.map((email) => {
+                const c = colleagues.find((x) => x.email === email);
+                return (
+                  <button
+                    key={email}
+                    type="button"
+                    onClick={() => togglePicked(email)}
+                    className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-3 py-1.5 text-[13px] font-semibold text-brand"
+                  >
+                    {c?.full_name ?? email}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                      <path d="M18 6 6 18 M6 6l12 12" />
+                    </svg>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {colleagues.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowPicker((v) => !v)}
+              className="mb-2 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              {showPicker ? "Fela lista" : "Velja af lista samstarfsmanna"}
+            </button>
+          )}
+
+          {showPicker && (
+            <div className="mb-2 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+              {colleagues.map((c, i) => {
+                const on = picked.includes(c.email);
+                return (
+                  <button
+                    key={c.email}
+                    type="button"
+                    onClick={() => togglePicked(c.email)}
+                    className={`flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-slate-50 ${
+                      i > 0 ? "border-t border-slate-100" : ""
+                    }`}
+                  >
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                        on ? "border-brand bg-brand text-white" : "border-slate-300 bg-white"
+                      }`}
+                    >
+                      {on && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      )}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-slate-800">
+                        {c.full_name}
+                      </span>
+                      <span className="block truncate text-xs text-slate-400">{c.email}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <input
             type="text"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            placeholder="netfang@daemi.is, annad@daemi.is"
+            placeholder="…eða skrifaðu netfang: netfang@daemi.is"
             className={field}
           />
           <p className="mt-1 text-xs text-slate-400">
-            Skeyti til samstarfsmanna (netfang í kerfinu) afhendast beint. Margir
-            viðtakendur: aðskildu með kommu eða semíkommu.
+            Veldu samstarfsmenn af listanum og/eða skrifaðu netföng — margir
+            viðtakendur aðskildir með kommu eða semíkommu.
           </p>
         </div>
         <div>
@@ -239,7 +332,7 @@ function ComposeInner() {
 
         <button
           onClick={send}
-          disabled={busy || !to.trim() || !body.trim()}
+          disabled={busy || (picked.length === 0 && !to.trim()) || !body.trim()}
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand py-4 text-[17px] font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

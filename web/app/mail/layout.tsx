@@ -37,7 +37,11 @@ const MAIL_ONLY = ["/mail/compose", "/mail/sent"];
 export default function MailLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [access, setAccess] = useState<{ hasMail: boolean; isManager: boolean } | null>(null);
+  const [access, setAccess] = useState<{
+    hasMail: boolean;
+    isManager: boolean;
+    email?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     myMailAccess()
@@ -67,13 +71,19 @@ export default function MailLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-md items-center px-4 py-3">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-2 px-4 py-3">
           <span className="inline-flex items-center gap-2">
             <LogoMark size={28} />
             <span className="font-semibold tracking-tight text-slate-900">
               Tímaverk <span className="font-normal text-slate-400">· Skilaboð</span>
             </span>
           </span>
+          {/* Sýnir alltaf HVER er innskráður — innhólf og úthólf fylgja þessum notanda */}
+          {access?.email && (
+            <span className="truncate text-xs font-medium text-slate-400">
+              {access.email}
+            </span>
+          )}
         </div>
       </header>
 

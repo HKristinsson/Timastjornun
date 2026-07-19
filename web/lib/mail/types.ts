@@ -27,6 +27,12 @@ export interface OutboundEmail {
   created_at: string;
 }
 
+// Notandi í mínu félagi — viðtakendalisti í "Nýtt skeyti"
+export interface CompanyUser {
+  email: string;
+  full_name: string;
+}
+
 export interface Group2Recipient {
   id: string;
   email: string;
