@@ -18,6 +18,12 @@ const FIELDS: { key: string; label: string; suffix: string; def: number }[] = [
   { key: "location_log_retention_days", label: "Geymslutími staðsetningarloga (GDPR)", suffix: "dagar", def: 90 },
 ];
 
+function minutesToTime(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 async function getEffective(): Promise<Record<string, number>> {
   const out: Record<string, number> = {};
   try {
@@ -63,6 +69,46 @@ export default async function SettingsPage() {
             </div>
           </div>
         ))}
+
+        <div className="border-t border-slate-100 pt-4">
+          <h2 className="text-[15px] font-semibold text-slate-800">
+            Staðsetning starfsmanna á korti
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Stjórnendur sjá staðsetningu innskráðra starfsmanna aðeins innan
+            þessa tímaglugga.
+          </p>
+          <div className="mt-3 space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <label className="text-sm">Sýnileg frá</label>
+              <input
+                type="time"
+                name="tracking_start"
+                defaultValue={minutesToTime(eff["tracking_start_min"] ?? 480)}
+                className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-right text-sm"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <label className="text-sm">Sýnileg til</label>
+              <input
+                type="time"
+                name="tracking_end"
+                defaultValue={minutesToTime(eff["tracking_end_min"] ?? 960)}
+                className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-right text-sm"
+              />
+            </div>
+            <label className="flex items-center justify-between gap-4 text-sm">
+              Líka um helgar
+              <input
+                type="checkbox"
+                name="tracking_weekends"
+                defaultChecked={(eff["tracking_weekends"] ?? 0) === 1}
+                className="h-4 w-4 accent-blue-600"
+              />
+            </label>
+          </div>
+        </div>
+
         <div className="pt-2">
           <button className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-dark">
             Vista stillingar

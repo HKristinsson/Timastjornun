@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { getCurrentFix } from "@/lib/location";
 import { stopProjectGeofence } from "@/lib/geofence";
+import { stopTracking } from "@/lib/tracking";
 
 interface ActiveEntry {
   id: string;
@@ -67,6 +68,7 @@ export default function Active() {
       p_reason: "auto_geofence",
     });
     await stopProjectGeofence();
+    await stopTracking();
     Alert.alert("Sjálfvirk útskráning", "Þú varst skráð(ur) út þar sem þú fórst af svæðinu.");
     router.replace("/home");
   }, []);
@@ -138,6 +140,7 @@ export default function Active() {
       return;
     }
     await stopProjectGeofence();
+    await stopTracking();
     setBusy(false);
     router.replace("/home");
   }

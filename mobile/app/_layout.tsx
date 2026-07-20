@@ -3,6 +3,8 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 // Skráir bakgrunns-geofencing verkið (TaskManager.defineTask) við ræsingu.
 import "@/lib/geofence";
+// Skráir bakgrunns-staðsetningarvöktun (kort stjórnenda) við ræsingu.
+import "@/lib/tracking";
 // Setur notification-handler (tilkynningar birtast líka með appið opið).
 import "@/lib/push";
 

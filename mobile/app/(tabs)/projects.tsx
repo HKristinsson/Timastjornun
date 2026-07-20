@@ -21,6 +21,7 @@ import {
   type Fix,
 } from "@/lib/location";
 import { startProjectGeofence } from "@/lib/geofence";
+import { startTracking } from "@/lib/tracking";
 import TaskPicker, { type ProjectTask } from "@/components/TaskPicker";
 
 interface MyProject {
@@ -111,6 +112,7 @@ export default function Projects() {
       if (p.lat != null && p.lng != null && p.radius_m != null) {
         await startProjectGeofence(p.id, p.lat, p.lng, p.radius_m);
       }
+      await startTracking();
     } catch {
       // Bakgrunnsvöktun mistókst — forgrunnsvöktun virkar samt
     }

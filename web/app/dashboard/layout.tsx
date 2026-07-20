@@ -24,6 +24,7 @@ const nav: NavItem[] = [
     label: "Starfsmenn",
     href: "/dashboard/employees",
     children: [
+      { label: "Staðsetning á korti", href: "/dashboard/staff-map" },
       { label: "Tímar", href: "/dashboard/time-entries" },
       { label: "Skýrslur", href: "/dashboard/reports" },
       { label: "Skilaboð", href: "/mail" },
@@ -32,7 +33,10 @@ const nav: NavItem[] = [
   {
     label: "Verkefni",
     href: "/dashboard/projects",
-    children: [{ label: "Kort af verkefnum", href: "/dashboard/map" }],
+    children: [
+      { label: "Kort af verkefnum", href: "/dashboard/map" },
+      { label: "Staðir", href: "/dashboard/places" },
+    ],
   },
   { label: "Stillingar", href: "/dashboard/settings" },
 ];
