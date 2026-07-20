@@ -146,8 +146,8 @@ export default function Projects() {
       ListHeaderComponent={
         <TouchableOpacity style={styles.sickRow} onPress={() => router.push("/sick")}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.sickTitle}>🤒 Skrá veikindi</Text>
-            <Text style={styles.sickSub}>Tilkynna veikindadaga til verkstjóra</Text>
+            <Text style={styles.sickTitle}>🤒 Skrá veikindi eða frí</Text>
+            <Text style={styles.sickSub}>Tilkynna veikinda- eða frídaga til verkstjóra</Text>
           </View>
           <Text style={styles.chev}>›</Text>
         </TouchableOpacity>

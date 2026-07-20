@@ -23,6 +23,7 @@ function fmt(d: string): string {
 }
 
 export default function Sick() {
+  const [kind, setKind] = useState<"sick" | "vacation">("sick");
   const [from, setFrom] = useState(today());
   const [to, setTo] = useState(today());
   const [note, setNote] = useState("");
@@ -42,8 +43,13 @@ export default function Sick() {
   async function register() {
     setBusy(true);
     try {
-      await registerAbsence(from, to, note.trim() || null);
-      Alert.alert("Skráð", "Veikindin voru skráð — verkstjóri sér skráninguna.");
+      await registerAbsence(from, to, note.trim() || null, kind);
+      Alert.alert(
+        "Skráð",
+        kind === "sick"
+          ? "Veikindin voru skráð — verkstjóri sér skráninguna."
+          : "Sumarfríið var skráð — verkstjóri sér skráninguna."
+      );
       setNote("");
       load();
     } catch (e) {
@@ -61,6 +67,25 @@ export default function Sick() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
       <View style={styles.card}>
+        <View style={styles.kindTabs}>
+          <TouchableOpacity
+            style={[styles.kindTab, kind === "sick" && styles.kindTabActive]}
+            onPress={() => setKind("sick")}
+          >
+            <Text style={[styles.kindText, kind === "sick" && styles.kindTextActive]}>
+              🤒 Veikindi
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.kindTab, kind === "vacation" && styles.kindTabActive]}
+            onPress={() => setKind("vacation")}
+          >
+            <Text style={[styles.kindText, kind === "vacation" && styles.kindTextActive]}>
+              🏖 Sumarfrí
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Frá (ÁÁÁÁ-MM-DD)</Text>
@@ -83,7 +108,9 @@ export default function Sick() {
           disabled={busy}
           onPress={register}
         >
-          <Text style={styles.buttonText}>{busy ? "Skrái…" : "🤒 Skrá veikindi"}</Text>
+          <Text style={styles.buttonText}>
+            {busy ? "Skrái…" : kind === "sick" ? "🤒 Skrá veikindi" : "🏖 Skrá sumarfrí"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -94,6 +121,7 @@ export default function Sick() {
         items.map((a) => (
           <View key={a.id} style={styles.rowCard}>
             <Text style={styles.rowTitle}>
+              {a.type === "vacation" ? "🏖 " : "🤒 "}
               {a.date_from === a.date_to ? fmt(a.date_from) : `${fmt(a.date_from)} – ${fmt(a.date_to)}`}
             </Text>
             {a.note ? <Text style={styles.rowNote}>{a.note}</Text> : null}
@@ -107,6 +135,11 @@ export default function Sick() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f1f5f9" },
   card: { backgroundColor: "#fff", borderRadius: 14, padding: 16 },
+  kindTabs: { flexDirection: "row", backgroundColor: "#e2e8f0", borderRadius: 12, padding: 4 },
+  kindTab: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: "center" },
+  kindTabActive: { backgroundColor: "#fff" },
+  kindText: { fontWeight: "600", color: "#64748b" },
+  kindTextActive: { color: "#0f172a" },
   label: { fontWeight: "600", color: "#334155", marginBottom: 6, marginTop: 10 },
   input: {
     borderWidth: 1,

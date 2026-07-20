@@ -4,6 +4,7 @@ import EmployeeForm, {
   type ProjectOption,
   type EmployeeDefaults,
 } from "@/components/EmployeeForm";
+import EmployeePhoto from "@/components/EmployeePhoto";
 import { updateEmployee } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +66,7 @@ export default async function EditEmployeePage({
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold">Breyta starfsmanni</h1>
+      <EmployeePhoto employeeId={id} />
       <EmployeeForm
         action={action}
         projects={projects}

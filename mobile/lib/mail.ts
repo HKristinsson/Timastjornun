@@ -33,6 +33,7 @@ export interface Announcement {
 
 export interface Absence {
   id: string;
+  type: string;
   date_from: string;
   date_to: string;
   note: string | null;
@@ -45,7 +46,11 @@ export interface MessageAttachment {
   storage_path: string | null;
 }
 
-export async function myAccess(): Promise<{ hasMail: boolean; email: string | null }> {
+export async function myAccess(): Promise<{
+  hasMail: boolean;
+  isManager: boolean;
+  email: string | null;
+}> {
   const { data: session } = await supabase.auth.getUser();
   const email = session.user?.email ?? null;
   const [{ data: roles }, g2] = await Promise.all([
@@ -56,7 +61,7 @@ export async function myAccess(): Promise<{ hasMail: boolean; email: string | nu
   ]);
   const r: string[] = (roles as string[]) ?? [];
   const isManager = r.includes("admin") || r.includes("project_manager");
-  return { hasMail: (g2.data as boolean) || isManager, email };
+  return { hasMail: (g2.data as boolean) || isManager, isManager, email };
 }
 
 export async function listInbox(): Promise<InboundMessage[]> {
@@ -218,17 +223,30 @@ export async function markAnnouncementRead(id: string): Promise<void> {
 export async function registerAbsence(
   from: string,
   to: string,
-  note: string | null
+  note: string | null,
+  kind: "sick" | "vacation" = "sick"
 ): Promise<void> {
   const { error } = await supabase.rpc("absence_register", {
     p_from: from,
     p_to: to,
     p_note: note,
+    p_kind: kind,
   });
   if (error) throw new Error(error.message);
 }
 
+// Slóð starfsmannamyndar -> tímabundin skoðunarslóð
+export async function employeePhotoUrl(path: string | null): Promise<string | null> {
+  if (!path) return null;
+  const { data } = await supabase.storage
+    .from("employee-photos")
+    .createSignedUrl(path, 3600);
+  return data?.signedUrl ?? null;
+}
+
 export async function listMyAbsences(): Promise<Absence[]> {
-  const { data } = await supabase.from("v_my_absences").select("id, date_from, date_to, note");
+  const { data } = await supabase
+    .from("v_my_absences")
+    .select("id, type, date_from, date_to, note");
   return (data ?? []) as Absence[];
 }

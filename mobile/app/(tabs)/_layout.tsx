@@ -7,10 +7,14 @@ import { myAccess } from "@/lib/mail";
 // innhólf (hóps-2 hak eða stjórnandi) — aðrir sjá Heim/Tilkynningar/Tíma.
 export default function TabsLayout() {
   const [hasMail, setHasMail] = useState(true);
+  const [isManager, setIsManager] = useState(false);
 
   useEffect(() => {
     myAccess()
-      .then((a) => setHasMail(a.hasMail))
+      .then((a) => {
+        setHasMail(a.hasMail);
+        setIsManager(a.isManager);
+      })
       .catch(() => {});
   }, []);
 
@@ -66,6 +70,16 @@ export default function TabsLayout() {
           title: "Tímar",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="time" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          title: "Stjórnun",
+          href: isManager ? "/admin" : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="shield-checkmark" size={size} color={color} />
           ),
         }}
       />

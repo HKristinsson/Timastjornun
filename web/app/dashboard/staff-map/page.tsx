@@ -12,6 +12,7 @@ import { OSM_STYLE, DEFAULT_CENTER, circlePolygon } from "@/lib/geo";
 interface EmployeeLocation {
   employee_id: string;
   full_name: string;
+  photo_path: string | null;
   project_no: string;
   project_name: string;
   lat: number;
@@ -37,6 +38,7 @@ export default function StaffMapPage() {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const [locations, setLocations] = useState<EmployeeLocation[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
   const [closed, setClosed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
@@ -56,8 +58,24 @@ export default function StaffMapPage() {
     }
     setClosed(false);
     setError(null);
-    setLocations((data ?? []) as EmployeeLocation[]);
+    const list = (data ?? []) as EmployeeLocation[];
+    setLocations(list);
     setUpdatedAt(new Date());
+
+    // Skoðunarslóðir starfsmannamynda fyrir sprettiglugga
+    const supabase = createClient();
+    const urls: Record<string, string> = {};
+    await Promise.all(
+      list
+        .filter((l) => l.photo_path)
+        .map(async (l) => {
+          const { data: signed } = await supabase.storage
+            .from("employee-photos")
+            .createSignedUrl(l.photo_path as string, 3600);
+          if (signed?.signedUrl) urls[l.employee_id] = signed.signedUrl;
+        })
+    );
+    setPhotoUrls((prev) => ({ ...prev, ...urls }));
   }, []);
 
   // Sækja reglulega
@@ -143,7 +161,10 @@ export default function StaffMapPage() {
         .setLngLat([l.lng, l.lat])
         .setPopup(
           new maplibregl.Popup({ offset: 20 }).setHTML(
-            `<strong>${l.full_name}</strong><br/>${l.project_no} ${l.project_name}<br/>` +
+            (photoUrls[l.employee_id]
+              ? `<img src="${photoUrls[l.employee_id]}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:12px;margin-bottom:6px;display:block"/>`
+              : "") +
+              `<strong>${l.full_name}</strong><br/>${l.project_no} ${l.project_name}<br/>` +
               `<small>Fyrir ${l.minutes_ago} mín${
                 l.inside_geofence === false ? " · ⚠ utan svæðis" : ""
               }</small>`
@@ -156,7 +177,7 @@ export default function StaffMapPage() {
     if (locations.length > 0) {
       map.fitBounds(bounds, { padding: 80, maxZoom: 14 });
     }
-  }, [locations]);
+  }, [locations, photoUrls]);
 
   return (
     <div className="space-y-4">

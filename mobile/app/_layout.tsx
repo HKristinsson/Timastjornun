@@ -17,9 +17,10 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="active" />
+        <Stack.Screen name="admin-map" />
         <Stack.Screen name="message/[id]" options={{ headerShown: true, title: "Skeyti" }} />
         <Stack.Screen name="compose" options={{ headerShown: true, title: "Nýtt skeyti" }} />
-        <Stack.Screen name="sick" options={{ headerShown: true, title: "Skrá veikindi" }} />
+        <Stack.Screen name="sick" options={{ headerShown: true, title: "Skrá veikindi eða frí" }} />
       </Stack>
     </GestureHandlerRootView>
   );
