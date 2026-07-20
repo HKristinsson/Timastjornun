@@ -1,7 +1,8 @@
-// Samfelld staðsetningarskráning MEÐAN starfsmaður er innskráður á verk.
-// OS keyrir verkið líka í bakgrunni (og með appið lokað á iOS með Always-heimild)
-// — punktarnir fara í log_location og birtast á korti stjórnenda.
-// Vöktun stoppar sjálfkrafa við útskráningu (handvirka, sjálfvirka og geofence).
+// Samfelld staðsetningarskráning á VINNUTÍMA — bæði meðan innskráður á verk
+// (log_location, tengt tímaskráningunni) og utan verk-innskráningar
+// (presence_ping — bakendinn geymir AÐEINS innan tímaglugga félagsins og
+// aðeins síðustu stöðu; utan glugga er engu safnað). OS keyrir verkið líka
+// í bakgrunni og með appið lokað (Always-heimild).
 import * as TaskManager from "expo-task-manager";
 import * as Location from "expo-location";
 import { supabase } from "./supabase";
@@ -19,21 +20,32 @@ TaskManager.defineTask(TRACKING_TASK, async ({ data, error }) => {
   if (!loc) return;
 
   try {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) {
+      // Útskráð(ur) úr appinu — hætta vöktun
+      await stopTracking();
+      return;
+    }
     const { data: active } = await supabase
       .from("v_my_active_entry")
       .select("id")
       .maybeSingle();
-    if (!active?.id) {
-      // Engin virk skráning — hætta vöktun (öryggisnet)
-      await stopTracking();
-      return;
+    if (active?.id) {
+      // Innskráð(ur) á verk: punktur á tímaskráninguna (geofence + heimsóknir)
+      await supabase.rpc("log_location", {
+        p_time_entry_id: active.id,
+        p_lat: loc.coords.latitude,
+        p_lng: loc.coords.longitude,
+        p_accuracy: loc.coords.accuracy ?? null,
+      });
+    } else {
+      // Í vinnu en ekki á verki: viðveru-púls (server sér um tímagluggann)
+      await supabase.rpc("presence_ping", {
+        p_lat: loc.coords.latitude,
+        p_lng: loc.coords.longitude,
+        p_accuracy: loc.coords.accuracy ?? null,
+      });
     }
-    await supabase.rpc("log_location", {
-      p_time_entry_id: active.id,
-      p_lat: loc.coords.latitude,
-      p_lng: loc.coords.longitude,
-      p_accuracy: loc.coords.accuracy ?? null,
-    });
   } catch {
     // Þögult í bakgrunni — næsti punktur reynir aftur
   }

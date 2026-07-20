@@ -19,13 +19,14 @@ interface Loc {
   employee_id: string;
   full_name: string;
   photo_path: string | null;
-  project_no: string;
-  project_name: string;
+  project_no: string | null;
+  project_name: string | null;
   lat: number;
   lng: number;
   recorded_at: string;
   inside_geofence: boolean | null;
   minutes_ago: number;
+  source: "checked_in" | "presence";
 }
 
 const REFRESH_MS = 60_000;
@@ -103,6 +104,7 @@ export default function AdminMap() {
             <View
               style={[
                 styles.marker,
+                l.source === "presence" && styles.markerPresence,
                 l.inside_geofence === false && styles.markerOutside,
               ]}
             >
@@ -148,7 +150,9 @@ export default function AdminMap() {
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.cardName}>{selected.full_name}</Text>
             <Text style={styles.cardSub} numberOfLines={1}>
-              {selected.project_no} {selected.project_name}
+              {selected.source === "checked_in"
+                ? `${selected.project_no} ${selected.project_name}`
+                : "Ekki innskráð(ur) á verk"}
             </Text>
             <Text style={styles.cardMeta}>
               Staðsetning fyrir {selected.minutes_ago} mín
@@ -203,6 +207,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   markerOutside: { backgroundColor: "#f59e0b" },
+  markerPresence: { backgroundColor: "#64748b" },
   markerText: { color: "#fff", fontWeight: "800", fontSize: 12 },
   notice: {
     position: "absolute",

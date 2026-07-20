@@ -13,13 +13,14 @@ interface EmployeeLocation {
   employee_id: string;
   full_name: string;
   photo_path: string | null;
-  project_no: string;
-  project_name: string;
+  project_no: string | null;
+  project_name: string | null;
   lat: number;
   lng: number;
   recorded_at: string;
   inside_geofence: boolean | null;
   minutes_ago: number;
+  source: "checked_in" | "presence";
 }
 
 interface Place {
@@ -149,8 +150,9 @@ export default function StaffMapPage() {
     const bounds = new maplibregl.LngLatBounds();
     locations.forEach((l) => {
       const el = document.createElement("div");
+      const bg = l.source === "presence" ? "#64748b" : "#2563eb";
       el.style.cssText =
-        "width:34px;height:34px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer";
+        `width:34px;height:34px;border-radius:50%;background:${bg};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer`;
       el.textContent = l.full_name
         .split(" ")
         .map((x) => x[0])
@@ -164,7 +166,11 @@ export default function StaffMapPage() {
             (photoUrls[l.employee_id]
               ? `<img src="${photoUrls[l.employee_id]}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:12px;margin-bottom:6px;display:block"/>`
               : "") +
-              `<strong>${l.full_name}</strong><br/>${l.project_no} ${l.project_name}<br/>` +
+              `<strong>${l.full_name}</strong><br/>${
+                l.source === "checked_in"
+                  ? `${l.project_no} ${l.project_name}`
+                  : "Ekki innskráð(ur) á verk"
+              }<br/>` +
               `<small>Fyrir ${l.minutes_ago} mín${
                 l.inside_geofence === false ? " · ⚠ utan svæðis" : ""
               }</small>`
@@ -230,7 +236,11 @@ export default function StaffMapPage() {
                 i > 0 ? "border-t border-slate-100" : ""
               }`}
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
+              <span
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white ${
+                  l.source === "presence" ? "bg-slate-500" : "bg-brand"
+                }`}
+              >
                 {l.full_name
                   .split(" ")
                   .map((x) => x[0])
@@ -243,7 +253,9 @@ export default function StaffMapPage() {
                   {l.full_name}
                 </span>
                 <span className="block truncate text-xs text-slate-400">
-                  {l.project_no} {l.project_name}
+                  {l.source === "checked_in"
+                    ? `${l.project_no} ${l.project_name}`
+                    : "Ekki innskráð(ur) á verk"}
                 </span>
               </span>
               <span

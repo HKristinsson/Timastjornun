@@ -20,7 +20,7 @@ import {
   type Fix,
 } from "@/lib/location";
 import { startProjectGeofence } from "@/lib/geofence";
-import { startTracking } from "@/lib/tracking";
+import { startTracking, stopTracking } from "@/lib/tracking";
 import TaskPicker, { type ProjectTask } from "@/components/TaskPicker";
 
 interface ActiveEntry {
@@ -62,6 +62,10 @@ export default function Home() {
   const load = useCallback(async () => {
     // Skrá push-token tækisins (einu sinni) svo skilaboð berist þótt appið sé lokað
     registerPush();
+    // Viðveru-vöktun á vinnutíma (bakendinn geymir aðeins innan tímaglugga félags)
+    ensureBackgroundPermission()
+      .then(() => startTracking())
+      .catch(() => {});
     setLoading(true);
 
     const { data } = await supabase
@@ -155,6 +159,7 @@ export default function Home() {
   }
 
   async function signOut() {
+    await stopTracking();
     await supabase.auth.signOut();
     router.replace("/login");
   }

@@ -2,7 +2,6 @@ import * as TaskManager from "expo-task-manager";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
 import { supabase } from "./supabase";
-import { stopTracking } from "./tracking";
 
 // Nafn bakgrunnsverksins. Stýrikerfið vekur þetta þegar farið er yfir
 // svæðismörk — LÍKA þegar appið er lokað eða í bakgrunni (OS-geofencing).
@@ -39,7 +38,7 @@ TaskManager.defineTask(GEOFENCE_TASK, async ({ data, error }) => {
     });
 
     await Location.stopGeofencingAsync(GEOFENCE_TASK).catch(() => {});
-    await stopTracking();
+    // Staðsetningarvöktun heldur áfram sem viðvera (innan tímaglugga félagsins)
 
     // Láta starfsmann vita (staðbundin tilkynning — virkar í bakgrunni).
     await Notifications.scheduleNotificationAsync({
