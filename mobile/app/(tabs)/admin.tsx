@@ -124,6 +124,30 @@ export default function AdminOverview() {
         <Text style={styles.mapButtonText}>🗺 Sjá starfsmenn á korti</Text>
       </TouchableOpacity>
 
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push("/admin-project-new")}
+        >
+          <Text style={styles.actionIcon}>➕</Text>
+          <Text style={styles.actionText}>Stofna verkefni</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push("/admin-times")}
+        >
+          <Text style={styles.actionIcon}>🕒</Text>
+          <Text style={styles.actionText}>Tímaskráningar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push("/admin-report")}
+        >
+          <Text style={styles.actionIcon}>📧</Text>
+          <Text style={styles.actionText}>Senda skýrslu</Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.sectionTitle}>
         🟢 Innskráðir núna ({data?.checked_in.length ?? 0})
       </Text>
@@ -210,6 +234,17 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   mapButtonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  actionRow: { flexDirection: "row", gap: 10, marginBottom: 18 },
+  actionButton: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    gap: 4,
+  },
+  actionIcon: { fontSize: 20 },
+  actionText: { fontSize: 12, fontWeight: "600", color: "#334155", textAlign: "center" },
   sectionTitle: {
     fontSize: 14,
     fontWeight: "700",

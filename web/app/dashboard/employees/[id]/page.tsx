@@ -5,6 +5,7 @@ import EmployeeForm, {
   type EmployeeDefaults,
 } from "@/components/EmployeeForm";
 import EmployeePhoto from "@/components/EmployeePhoto";
+import EmployeeAdminToggle from "@/components/EmployeeAdminToggle";
 import { updateEmployee } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +67,7 @@ export default async function EditEmployeePage({
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold">Breyta starfsmanni</h1>
+      <EmployeeAdminToggle employeeId={id} />
       <EmployeePhoto employeeId={id} />
       <EmployeeForm
         action={action}
