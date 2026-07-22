@@ -7,8 +7,10 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 
 interface Entry {
@@ -58,6 +60,19 @@ export default function AdminTimes() {
     }, [load])
   );
 
+  async function review(e: Entry, decision: "approved" | "rejected") {
+    const { error } = await supabase.rpc("review_time_entry", {
+      p_time_entry_id: e.id,
+      p_decision: decision,
+      p_reason: null,
+    });
+    if (error) {
+      Alert.alert("Villa", error.message);
+      return;
+    }
+    load();
+  }
+
   const chips: { key: Filter; label: string }[] = [
     { key: "all", label: "Allt" },
     { key: "active", label: "Virkar" },
@@ -92,6 +107,7 @@ export default function AdminTimes() {
         renderItem={({ item }) => {
           const s = STATUS[item.status] ?? { label: item.status, color: "#64748b" };
           return (
+            <View style={styles.rowWrap}>
             <View style={styles.row}>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={styles.name}>{item.employee_name}</Text>
@@ -123,6 +139,25 @@ export default function AdminTimes() {
                 <Text style={[styles.status, { color: s.color }]}>{s.label}</Text>
               </View>
             </View>
+            {item.status === "pending" && (
+              <View style={styles.reviewRow}>
+                <TouchableOpacity
+                  style={styles.approveButton}
+                  onPress={() => review(item, "approved")}
+                >
+                  <Ionicons name="checkmark" size={15} color="#fff" />
+                  <Text style={styles.approveText}>Samþykkja</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.rejectButton}
+                  onPress={() => review(item, "rejected")}
+                >
+                  <Ionicons name="close" size={15} color="#dc2626" />
+                  <Text style={styles.rejectText}>Hafna</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            </View>
           );
         }}
       />
@@ -145,14 +180,36 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: "600", color: "#64748b" },
   chipTextActive: { color: "#fff" },
   muted: { color: "#94a3b8", textAlign: "center", marginTop: 40 },
-  row: {
-    flexDirection: "row",
+  rowWrap: {
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
-    gap: 10,
   },
+  row: { flexDirection: "row", gap: 10 },
+  reviewRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  approveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#16a34a",
+    borderRadius: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  approveText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  rejectButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    borderRadius: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: "#fff",
+  },
+  rejectText: { color: "#dc2626", fontWeight: "700", fontSize: 13 },
   name: { fontSize: 15, fontWeight: "600", color: "#0f172a" },
   sub: { fontSize: 13, color: "#64748b", marginTop: 1 },
   date: { fontSize: 12, color: "#94a3b8", marginTop: 3 },

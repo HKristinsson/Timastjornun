@@ -10,6 +10,7 @@ import {
   ScrollView,
   Image,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,10 +32,22 @@ interface OverviewPerson {
   note?: string | null;
 }
 
+interface PendingAbsence {
+  absence_id: string;
+  kind: string;
+  employee_id: string;
+  full_name: string;
+  photo_path: string | null;
+  date_from: string;
+  date_to: string;
+  note: string | null;
+}
+
 interface Overview {
   checked_in: OverviewPerson[];
   sick: OverviewPerson[];
   vacation: OverviewPerson[];
+  pending_absences: PendingAbsence[];
 }
 
 function initials(name: string): string {
@@ -85,6 +98,11 @@ export default function AdminOverview() {
       ...overview.checked_in,
       ...overview.sick,
       ...overview.vacation,
+      ...(overview.pending_absences ?? []).map((p) => ({
+        employee_id: p.employee_id,
+        full_name: p.full_name,
+        photo_path: p.photo_path,
+      })),
     ];
     const urls: Record<string, string | null> = {};
     await Promise.all(
@@ -104,6 +122,18 @@ export default function AdminOverview() {
       load();
     }, [load])
   );
+
+  async function reviewAbsence(a: PendingAbsence, decision: "approved" | "rejected") {
+    const { error } = await supabase.rpc("absence_review", {
+      p_id: a.absence_id,
+      p_decision: decision,
+    });
+    if (error) {
+      Alert.alert("Villa", error.message);
+      return;
+    }
+    load();
+  }
 
   if (denied) {
     return (
@@ -149,7 +179,63 @@ export default function AdminOverview() {
           <ThemeIcon name="mail-outline" size={42} />
           <Text style={styles.actionText}>Senda skýrslu</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push("/admin-employees")}
+        >
+          <ThemeIcon name="people-outline" size={42} />
+          <Text style={styles.actionText}>Starfsmenn</Text>
+        </TouchableOpacity>
       </View>
+
+      {data && (data.pending_absences ?? []).length > 0 && (
+        <>
+          <View style={styles.sectionRow}>
+            <ThemeIcon name="hourglass-outline" size={28} />
+            <Text style={styles.sectionTitle}>
+              Bíður samþykktar ({data.pending_absences.length})
+            </Text>
+          </View>
+          <View style={styles.card}>
+            {data.pending_absences.map((p, i) => (
+              <View
+                key={p.absence_id}
+                style={[styles.pendingRow, i > 0 && styles.rowBorder]}
+              >
+                <View style={styles.row}>
+                  <Avatar name={p.full_name} url={photos[p.employee_id] ?? null} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.name}>{p.full_name}</Text>
+                    <Text style={styles.sub}>
+                      {p.kind === "vacation" ? "Sumarfrí" : "Veikindi"}:{" "}
+                      {p.date_from === p.date_to
+                        ? p.date_from
+                        : `${p.date_from} – ${p.date_to}`}
+                      {p.note ? ` · ${p.note}` : ""}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.pendingButtons}>
+                  <TouchableOpacity
+                    style={styles.approveButton}
+                    onPress={() => reviewAbsence(p, "approved")}
+                  >
+                    <Ionicons name="checkmark" size={15} color="#fff" />
+                    <Text style={styles.reviewText}>Samþykkja</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.rejectButton}
+                    onPress={() => reviewAbsence(p, "rejected")}
+                  >
+                    <Ionicons name="close" size={15} color="#dc2626" />
+                    <Text style={styles.rejectText}>Hafna</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
 
       <View style={styles.sectionRow}>
         <ThemeIcon name="person-outline" size={28} />
@@ -250,15 +336,40 @@ const styles = StyleSheet.create({
   },
   mapButtonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
   sectionRow: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 8 },
-  actionRow: { flexDirection: "row", gap: 10, marginBottom: 18 },
+  actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 18 },
   actionButton: {
-    flex: 1,
+    flexBasis: "47%",
+    flexGrow: 1,
     backgroundColor: "#fff",
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
     gap: 4,
   },
+  pendingRow: { paddingVertical: 8 },
+  pendingButtons: { flexDirection: "row", gap: 8, marginTop: 8, marginLeft: 54 },
+  approveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#16a34a",
+    borderRadius: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  reviewText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  rejectButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    borderRadius: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: "#fff",
+  },
+  rejectText: { color: "#dc2626", fontWeight: "700", fontSize: 13 },
   actionText: { fontSize: 12, fontWeight: "600", color: "#334155", textAlign: "center" },
   sectionTitle: {
     fontSize: 14,

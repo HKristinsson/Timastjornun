@@ -5193,6 +5193,243 @@ grant execute on all functions in schema public to anon, authenticated, service_
 notify pgrst, 'reload schema';
 
 
+-- >>> migrations\0038_absence_review_employees.sql >>>
+
+-- =============================================================================
+-- 0038_absence_review_employees.sql
+-- 1) Fjarvera (veikindi/frí) fær samþykktarferli: ný skráning bíður samþykktar
+--    stjórnanda (eldri skráningar teljast samþykktar).
+-- 2) employee_list_admin: starfsmannalisti með admin-stöðu fyrir appið.
+-- =============================================================================
+
+-- --- 1) Samþykkt fjarveru -----------------------------------------------------
+
+alter table absences add column if not exists status text not null default 'approved'
+  check (status in ('pending', 'approved', 'rejected'));
+alter table absences alter column status set default 'pending';
+
+create or replace function app.absence_review(p_id uuid, p_decision text)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not app.has_role('admin') and not app.has_role('project_manager') then
+    raise exception 'FORBIDDEN';
+  end if;
+  if p_decision not in ('approved', 'rejected') then
+    raise exception 'BAD_DECISION';
+  end if;
+  update absences set status = p_decision
+   where id = p_id and tenant_id = app.current_tenant_id();
+  perform app.write_audit(app.current_tenant_id(), app.current_user_id(),
+    p_decision, 'absence', p_id, null);
+end $$;
+
+create or replace function public.absence_review(p_id uuid, p_decision text)
+returns void language sql security definer set search_path = public as $$
+  select app.absence_review(p_id, p_decision)
+$$;
+
+create or replace view v_my_absences with (security_invoker = on) as
+select a.id, a.type, a.date_from, a.date_to, a.note, a.created_at, a.status
+from absences a
+join employees e on e.id = a.employee_id
+where e.user_id = app.current_user_id()
+order by a.date_from desc;
+
+create or replace view v_tenant_absences with (security_invoker = on) as
+select a.id, a.type, a.date_from, a.date_to, a.note, a.created_at,
+       e.full_name as employee_name, e.employee_no, a.status
+from absences a
+join employees e on e.id = a.employee_id
+order by a.date_from desc;
+
+-- admin_overview: bætir við 'pending_absences' (öll óafgreidd, óháð dagsetningu)
+create or replace function app.admin_overview()
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_tenant uuid := app.current_tenant_id();
+  v_out jsonb;
+begin
+  if not app.has_role('admin') and not app.has_role('project_manager') then
+    raise exception 'FORBIDDEN';
+  end if;
+
+  select jsonb_build_object(
+    'checked_in', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'employee_id', e.id, 'full_name', e.full_name, 'photo_path', e.photo_path,
+        'project_no', p.project_no, 'project_name', p.name,
+        'task_no', pt.task_no, 'task_name', pt.name,
+        'check_in_at', te.check_in_at
+      ) order by te.check_in_at)
+      from time_entries te
+      join employees e on e.id = te.employee_id
+      join projects p on p.id = te.project_id
+      left join project_tasks pt on pt.id = te.task_id
+      where te.tenant_id = v_tenant and te.check_out_at is null
+    ), '[]'::jsonb),
+    'sick', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'employee_id', e.id, 'full_name', e.full_name, 'photo_path', e.photo_path,
+        'date_from', a.date_from, 'date_to', a.date_to, 'note', a.note,
+        'status', a.status
+      ) order by e.full_name)
+      from absences a join employees e on e.id = a.employee_id
+      where a.tenant_id = v_tenant and a.type = 'sick' and a.status <> 'rejected'
+        and current_date between a.date_from and a.date_to
+    ), '[]'::jsonb),
+    'vacation', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'employee_id', e.id, 'full_name', e.full_name, 'photo_path', e.photo_path,
+        'date_from', a.date_from, 'date_to', a.date_to, 'note', a.note,
+        'status', a.status
+      ) order by e.full_name)
+      from absences a join employees e on e.id = a.employee_id
+      where a.tenant_id = v_tenant and a.type = 'vacation' and a.status <> 'rejected'
+        and current_date between a.date_from and a.date_to
+    ), '[]'::jsonb),
+    'pending_absences', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'absence_id', a.id, 'kind', a.type,
+        'employee_id', e.id, 'full_name', e.full_name, 'photo_path', e.photo_path,
+        'date_from', a.date_from, 'date_to', a.date_to, 'note', a.note
+      ) order by a.created_at)
+      from absences a join employees e on e.id = a.employee_id
+      where a.tenant_id = v_tenant and a.status = 'pending'
+    ), '[]'::jsonb)
+  ) into v_out;
+
+  return v_out;
+end $$;
+
+-- --- 2) Starfsmannalisti með admin-stöðu (fyrir appið) ------------------------
+
+create or replace function app.employee_list_admin()
+returns table(
+  employee_id uuid, full_name text, email text, photo_path text,
+  status text, has_login boolean, is_admin boolean
+)
+language plpgsql security definer set search_path = public as $$
+declare v_tenant uuid := app.current_tenant_id();
+begin
+  if not app.has_role('admin') and not app.has_role('project_manager') then
+    raise exception 'FORBIDDEN';
+  end if;
+  return query
+    select e.id, e.full_name, e.email::text, e.photo_path, e.status,
+           e.user_id is not null,
+           exists (
+             select 1 from user_roles ur join roles r on r.id = ur.role_id
+             where ur.user_id = e.user_id and r.name = 'admin'
+           )
+    from employees e
+    where e.tenant_id = v_tenant
+    order by e.full_name;
+end $$;
+
+create or replace function public.employee_list_admin()
+returns table(
+  employee_id uuid, full_name text, email text, photo_path text,
+  status text, has_login boolean, is_admin boolean
+) language sql security definer set search_path = public as $$
+  select * from app.employee_list_admin()
+$$;
+
+grant execute on all functions in schema app to anon, authenticated, service_role;
+grant execute on all functions in schema public to anon, authenticated, service_role;
+notify pgrst, 'reload schema';
+
+
+-- >>> migrations\0039_auto_employee_no.sql >>>
+
+-- =============================================================================
+-- 0039_auto_employee_no.sql — Sjálfvirkt starfsmannanúmer
+-- Ef starfsmannanúmer vantar við stofnun (t.d. úr appinu) fær starfsmaðurinn
+-- sjálfkrafa næsta lausa númer félagsins.
+-- =============================================================================
+
+create or replace function app.next_employee_no(p_tenant uuid)
+returns text language sql stable security definer set search_path = public as $$
+  select lpad((
+    coalesce(max(nullif(regexp_replace(employee_no, '\D', '', 'g'), '')::int), 0) + 1
+  )::text, 3, '0')
+  from employees where tenant_id = p_tenant
+$$;
+
+create or replace function app.create_employee_with_login(
+  p_full_name text, p_employee_no text, p_phone text, p_email text,
+  p_national_id text, p_password text
+) returns employees
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  v_tenant  uuid := app.current_tenant_id();
+  v_actor   uuid := app.current_user_id();
+  v_key     text := current_setting('app.kennitala_key', true);
+  v_auth_id uuid := gen_random_uuid();
+  v_user_id uuid;
+  v_emp     employees;
+  v_email   text := lower(trim(p_email));
+  v_no      text := coalesce(nullif(trim(coalesce(p_employee_no, '')), ''),
+                             app.next_employee_no(app.current_tenant_id()));
+begin
+  if not (app.has_role('admin') or app.has_role('project_manager') or app.has_role('super_admin')) then
+    raise exception 'FORBIDDEN';
+  end if;
+  if v_email is null or v_email = '' then
+    raise exception 'EMAIL_REQUIRED: Netfang er nauðsynlegt fyrir innskráningu';
+  end if;
+  perform app.check_seat_limit(v_tenant);
+  perform app.check_email_domain(v_tenant, v_email);
+  if p_password is null or length(p_password) < 6 then
+    raise exception 'WEAK_PASSWORD: Lykilorð verður að vera a.m.k. 6 stafir';
+  end if;
+  if exists (select 1 from auth.users where email = v_email) then
+    raise exception 'EMAIL_EXISTS: Netfang er þegar í notkun';
+  end if;
+
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password,
+    email_confirmed_at, created_at, updated_at,
+    raw_app_meta_data, raw_user_meta_data,
+    confirmation_token, recovery_token, email_change, email_change_token_new
+  ) values (
+    '00000000-0000-0000-0000-000000000000', v_auth_id, 'authenticated', 'authenticated',
+    v_email, crypt(p_password, gen_salt('bf')), now(), now(), now(),
+    '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, '', '', '', ''
+  );
+  insert into auth.identities (
+    id, user_id, provider_id, identity_data, provider,
+    last_sign_in_at, created_at, updated_at
+  ) values (
+    gen_random_uuid(), v_auth_id, v_auth_id::text,
+    jsonb_build_object('sub', v_auth_id::text, 'email', v_email), 'email',
+    now(), now(), now()
+  );
+
+  insert into users (tenant_id, auth_user_id, email, phone, status)
+  values (v_tenant, v_auth_id, v_email, p_phone, 'active')
+  returning id into v_user_id;
+  insert into user_roles (user_id, role_id)
+  select v_user_id, id from roles where name = 'employee';
+
+  insert into employees (tenant_id, user_id, full_name, employee_no, phone, email,
+                         national_id_enc, status)
+  values (v_tenant, v_user_id, p_full_name, v_no, p_phone, v_email,
+          case when p_national_id is not null and coalesce(v_key,'') <> ''
+               then pgp_sym_encrypt(p_national_id, v_key) end,
+          'active')
+  returning * into v_emp;
+
+  perform app.write_audit(v_tenant, v_actor, 'create', 'employee', v_emp.id,
+    jsonb_build_object('with_login', true, 'auto_no', p_employee_no is null));
+  return v_emp;
+end $$;
+
+grant execute on all functions in schema app to anon, authenticated, service_role;
+notify pgrst, 'reload schema';
+
+
 -- >>> seed.sql >>>
 
 -- =============================================================================

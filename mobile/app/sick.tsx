@@ -140,6 +140,33 @@ export default function Sick() {
               <Text style={styles.rowTitle}>
                 {a.date_from === a.date_to ? fmt(a.date_from) : `${fmt(a.date_from)} – ${fmt(a.date_to)}`}
               </Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  a.status === "approved"
+                    ? styles.statusApproved
+                    : a.status === "rejected"
+                    ? styles.statusRejected
+                    : styles.statusPending,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusText,
+                    a.status === "approved"
+                      ? { color: "#16a34a" }
+                      : a.status === "rejected"
+                      ? { color: "#dc2626" }
+                      : { color: "#d97706" },
+                  ]}
+                >
+                  {a.status === "approved"
+                    ? "Samþykkt"
+                    : a.status === "rejected"
+                    ? "Hafnað"
+                    : "Bíður"}
+                </Text>
+              </View>
             </View>
             {a.note ? <Text style={styles.rowNote}>{a.note}</Text> : null}
           </View>
@@ -185,6 +212,11 @@ const styles = StyleSheet.create({
   section: { fontWeight: "700", color: "#334155", marginTop: 20, marginBottom: 8 },
   muted: { color: "#94a3b8" },
   rowCard: { backgroundColor: "#fff", borderRadius: 12, padding: 14, marginBottom: 8 },
+  statusBadge: { borderRadius: 7, paddingHorizontal: 8, paddingVertical: 3, marginLeft: "auto" },
+  statusApproved: { backgroundColor: "#f0fdf4" },
+  statusRejected: { backgroundColor: "#fef2f2" },
+  statusPending: { backgroundColor: "#fffbeb" },
+  statusText: { fontSize: 11.5, fontWeight: "700" },
   rowTitle: { fontWeight: "600", color: "#0f172a" },
   rowNote: { marginTop: 2, color: "#64748b", fontSize: 13 },
 });

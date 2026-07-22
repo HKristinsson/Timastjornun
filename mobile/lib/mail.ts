@@ -37,6 +37,7 @@ export interface Absence {
   date_from: string;
   date_to: string;
   note: string | null;
+  status: string;
 }
 
 export interface MessageAttachment {
@@ -247,6 +248,6 @@ export async function employeePhotoUrl(path: string | null): Promise<string | nu
 export async function listMyAbsences(): Promise<Absence[]> {
   const { data } = await supabase
     .from("v_my_absences")
-    .select("id, type, date_from, date_to, note");
+    .select("id, type, date_from, date_to, note, status");
   return (data ?? []) as Absence[];
 }
