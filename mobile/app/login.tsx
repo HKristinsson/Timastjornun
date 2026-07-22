@@ -28,7 +28,7 @@ export default function Login() {
       setError("Innskráning mistókst. Athugaðu netfang og lykilorð.");
       return;
     }
-    router.replace("/home");
+    router.replace("/projects");
   }
 
   return (

@@ -45,7 +45,7 @@ export default function Active() {
       .maybeSingle()
       .then(({ data }) => {
         if (!data) {
-          router.replace("/home");
+          router.replace("/projects");
           return;
         }
         setEntry(data as ActiveEntry);
@@ -69,7 +69,7 @@ export default function Active() {
     });
     await stopProjectGeofence();
     Alert.alert("Sjálfvirk útskráning", "Þú varst skráð(ur) út þar sem þú fórst af svæðinu.");
-    router.replace("/home");
+    router.replace("/projects");
   }, []);
 
   // Staðsetningarvöktun
@@ -140,7 +140,7 @@ export default function Active() {
     }
     await stopProjectGeofence();
     setBusy(false);
-    router.replace("/home");
+    router.replace("/projects");
   }
 
   if (!entry) {
@@ -157,8 +157,8 @@ export default function Active() {
     <View style={[styles.container, warning && styles.containerWarn]}>
       {/* Skráningin heldur áfram í bakgrunni — notandinn er frjáls um appið */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.replace("/home")}>
-          <Text style={styles.topLink}>‹ Heim</Text>
+        <TouchableOpacity onPress={() => router.replace("/projects")}>
+          <Text style={styles.topLink}>‹ Verkefni</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={{ flexDirection: "row", alignItems: "center", gap: 5 }}

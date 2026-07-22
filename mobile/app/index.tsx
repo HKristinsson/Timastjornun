@@ -3,7 +3,7 @@ import { View, ActivityIndicator } from "react-native";
 import { Redirect } from "expo-router";
 import { supabase } from "@/lib/supabase";
 
-// Auth-hlið: beinir á /home ef innskráð(ur), annars /login.
+// Auth-hlið: beinir á /projects ef innskráð(ur), annars /login.
 export default function Index() {
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
@@ -22,5 +22,5 @@ export default function Index() {
       </View>
     );
   }
-  return <Redirect href={signedIn ? "/home" : "/login"} />;
+  return <Redirect href={signedIn ? "/projects" : "/login"} />;
 }
