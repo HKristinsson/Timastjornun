@@ -13,6 +13,7 @@ import {
   Switch,
   Image,
   RefreshControl,
+  Modal,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -68,6 +69,13 @@ export default function AdminEmployees() {
   const [password, setPassword] = useState("");
   const [makeAdmin, setMakeAdmin] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // Breyta starfsmanni
+  const [editFor, setEditFor] = useState<EmployeeRow | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
 
   const load = useCallback(async () => {
     // Lén félagsins: netfang starfsmanns verður notandanafn@lén
@@ -172,6 +180,56 @@ export default function AdminEmployees() {
       Alert.alert("Villa", translateError(e instanceof Error ? e.message : "Tókst ekki."));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function openEdit(e: EmployeeRow) {
+    setEditFor(e);
+    setEditName(e.full_name);
+    setEditPassword("");
+    // Núverandi sími forfylltur svo hann glatist ekki við vistun
+    const { data } = await supabase
+      .from("employees")
+      .select("phone")
+      .eq("id", e.employee_id)
+      .single();
+    setEditPhone(((data as { phone: string | null } | null)?.phone ?? "") || "");
+  }
+
+  async function saveEdit() {
+    if (!editFor) return;
+    setEditBusy(true);
+    try {
+      const { error } = await supabase.rpc("update_employee", {
+        p_id: editFor.employee_id,
+        p_full_name: editName.trim() || editFor.full_name,
+        p_phone: editPhone.trim() || null,
+        p_email: editFor.email,
+        p_status: editFor.status,
+      });
+      if (error) throw new Error(error.message);
+      if (editPassword.length > 0) {
+        if (editPassword.length < 6) {
+          throw new Error("Lykilorð þarf a.m.k. 6 stafi.");
+        }
+        const { error } = await supabase.rpc("set_employee_password", {
+          p_employee_id: editFor.employee_id,
+          p_password: editPassword,
+        });
+        if (error) throw new Error(error.message);
+      }
+      Alert.alert(
+        "Vistað",
+        editPassword
+          ? `Breytingar vistaðar — nýja lykilorðið gildir strax.`
+          : "Breytingar vistaðar."
+      );
+      setEditFor(null);
+      load();
+    } catch (e) {
+      Alert.alert("Villa", translateError(e instanceof Error ? e.message : "Tókst ekki."));
+    } finally {
+      setEditBusy(false);
     }
   }
 
@@ -331,6 +389,9 @@ export default function AdminEmployees() {
                   </View>
                 </View>
               </TouchableOpacity>
+              <TouchableOpacity onPress={() => openEdit(e)} style={styles.editButton}>
+                <Ionicons name="pencil-outline" size={17} color="#2563eb" />
+              </TouchableOpacity>
               <Switch
                 value={e.is_admin}
                 onValueChange={() => toggleAdmin(e)}
@@ -342,10 +403,62 @@ export default function AdminEmployees() {
         )}
       </View>
       <Text style={styles.hint}>
-        Ýttu á starfsmann til að sjá ferðir hans á korti. Rofinn gerir
-        starfsmann að stjórnanda (eða afturkallar) — starfsmenn án
-        innskráningar þurfa netfang og lykilorð fyrst.
+        Ýttu á starfsmann til að sjá ferðir hans á korti, blýantinn til að
+        breyta (nafn, sími, lykilorð). Rofinn gerir starfsmann að stjórnanda —
+        starfsmenn án innskráningar þurfa netfang og lykilorð fyrst.
       </Text>
+
+      {/* Breyta starfsmanni */}
+      <Modal
+        visible={editFor != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditFor(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalTitle}>Breyta: {editFor?.full_name}</Text>
+
+            <Text style={styles.label}>Fullt nafn</Text>
+            <TextInput value={editName} onChangeText={setEditName} style={styles.input} />
+
+            <Text style={styles.label}>Símanúmer</Text>
+            <TextInput
+              value={editPhone}
+              onChangeText={setEditPhone}
+              keyboardType="phone-pad"
+              style={styles.input}
+            />
+
+            <Text style={styles.label}>Nýtt lykilorð (autt = óbreytt)</Text>
+            <TextInput
+              value={editPassword}
+              onChangeText={setEditPassword}
+              secureTextEntry
+              placeholder="A.m.k. 6 stafir"
+              style={styles.input}
+            />
+
+            <TouchableOpacity
+              style={[styles.button, editBusy && styles.disabled]}
+              disabled={editBusy}
+              onPress={saveEdit}
+            >
+              {editBusy ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Vista breytingar</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelLink}
+              onPress={() => setEditFor(null)}
+            >
+              <Text style={styles.cancelText}>Hætta við</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -411,6 +524,19 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 14, fontWeight: "700", color: "#334155", marginBottom: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 9 },
   rowBody: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12, minWidth: 0 },
+  editButton: {
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    padding: 8,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.5)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalSheet: { backgroundColor: "#fff", borderRadius: 18, padding: 20 },
+  modalTitle: { fontSize: 17, fontWeight: "700", color: "#0f172a" },
   rowBorder: { borderTopWidth: 1, borderTopColor: "#f1f5f9" },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#e2e8f0" },
   avatarFallback: {
