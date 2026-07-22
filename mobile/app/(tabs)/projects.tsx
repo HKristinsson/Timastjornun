@@ -11,6 +11,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import { supabase } from "@/lib/supabase";
 import {
@@ -145,8 +146,9 @@ export default function Projects() {
       keyExtractor={(p) => p.id}
       ListHeaderComponent={
         <TouchableOpacity style={styles.sickRow} onPress={() => router.push("/sick")}>
+          <Ionicons name="medkit" size={20} color="#d97706" />
           <View style={{ flex: 1 }}>
-            <Text style={styles.sickTitle}>🤒 Skrá veikindi eða frí</Text>
+            <Text style={styles.sickTitle}>Skrá veikindi eða frí</Text>
             <Text style={styles.sickSub}>Tilkynna veikinda- eða frídaga til verkstjóra</Text>
           </View>
           <Text style={styles.chev}>›</Text>
@@ -167,14 +169,20 @@ export default function Projects() {
               {item.project_no} {item.name}
             </Text>
             {item.address && <Text style={styles.addr}>{item.address}</Text>}
-            <Text style={inside ? styles.inside : styles.outside}>
-              📍{" "}
-              {dist == null
-                ? "Staðsetning óþekkt"
-                : inside
-                ? `Innan svæðis (${dist} m)`
-                : `${dist} m í burtu`}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 8 }}>
+              <Ionicons
+                name="location"
+                size={14}
+                color={inside ? "#16a34a" : "#64748b"}
+              />
+              <Text style={inside ? styles.inside : styles.outside}>
+                {dist == null
+                  ? "Staðsetning óþekkt"
+                  : inside
+                  ? `Innan svæðis (${dist} m)`
+                  : `${dist} m í burtu`}
+              </Text>
+            </View>
             {hasActive ? (
               <Text style={styles.activeNote}>
                 Þú ert þegar innskráð(ur) á verk — skráðu þig fyrst út.
@@ -229,8 +237,8 @@ const styles = StyleSheet.create({
   card: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 12 },
   projName: { fontSize: 16, fontWeight: "600" },
   addr: { color: "#64748b", marginTop: 2 },
-  inside: { color: "#16a34a", marginTop: 8 },
-  outside: { color: "#64748b", marginTop: 8 },
+  inside: { color: "#16a34a" },
+  outside: { color: "#64748b" },
   activeNote: { color: "#94a3b8", marginTop: 10, fontSize: 13 },
   button: { backgroundColor: "#2563eb", borderRadius: 10, paddingVertical: 12, alignItems: "center", marginTop: 12 },
   buttonDisabled: { backgroundColor: "#cbd5e1" },

@@ -12,6 +12,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { employeePhotoUrl } from "@/lib/mail";
 
@@ -121,7 +122,8 @@ export default function AdminOverview() {
         style={styles.mapButton}
         onPress={() => router.push("/admin-map")}
       >
-        <Text style={styles.mapButtonText}>🗺 Sjá starfsmenn á korti</Text>
+        <Ionicons name="map" size={19} color="#fff" />
+        <Text style={styles.mapButtonText}>Sjá starfsmenn á korti</Text>
       </TouchableOpacity>
 
       <View style={styles.actionRow}>
@@ -129,28 +131,31 @@ export default function AdminOverview() {
           style={styles.actionButton}
           onPress={() => router.push("/admin-project-new")}
         >
-          <Text style={styles.actionIcon}>➕</Text>
+          <Ionicons name="add-circle" size={22} color="#16a34a" />
           <Text style={styles.actionText}>Stofna verkefni</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => router.push("/admin-times")}
         >
-          <Text style={styles.actionIcon}>🕒</Text>
+          <Ionicons name="time" size={22} color="#2563eb" />
           <Text style={styles.actionText}>Tímaskráningar</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => router.push("/admin-report")}
         >
-          <Text style={styles.actionIcon}>📧</Text>
+          <Ionicons name="mail" size={22} color="#7c3aed" />
           <Text style={styles.actionText}>Senda skýrslu</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>
-        🟢 Innskráðir núna ({data?.checked_in.length ?? 0})
-      </Text>
+      <View style={styles.sectionRow}>
+        <Ionicons name="ellipse" size={11} color="#16a34a" />
+        <Text style={styles.sectionTitle}>
+          Innskráðir núna ({data?.checked_in.length ?? 0})
+        </Text>
+      </View>
       <View style={styles.card}>
         {!data || data.checked_in.length === 0 ? (
           <Text style={styles.muted}>Enginn innskráður á verk núna.</Text>
@@ -166,14 +171,17 @@ export default function AdminOverview() {
                 </Text>
               </View>
               <Text style={styles.time}>
-                ⏱ {p.check_in_at ? sinceText(p.check_in_at) : ""}
+                {p.check_in_at ? sinceText(p.check_in_at) : ""}
               </Text>
             </View>
           ))
         )}
       </View>
 
-      <Text style={styles.sectionTitle}>🤒 Veikir í dag ({data?.sick.length ?? 0})</Text>
+      <View style={styles.sectionRow}>
+        <Ionicons name="medkit" size={14} color="#d97706" />
+        <Text style={styles.sectionTitle}>Veikir í dag ({data?.sick.length ?? 0})</Text>
+      </View>
       <View style={styles.card}>
         {!data || data.sick.length === 0 ? (
           <Text style={styles.muted}>Enginn skráður veikur í dag.</Text>
@@ -195,9 +203,12 @@ export default function AdminOverview() {
         )}
       </View>
 
-      <Text style={styles.sectionTitle}>
-        🏖 Í sumarfríi í dag ({data?.vacation.length ?? 0})
-      </Text>
+      <View style={styles.sectionRow}>
+        <Ionicons name="sunny" size={14} color="#f59e0b" />
+        <Text style={styles.sectionTitle}>
+          Í sumarfríi í dag ({data?.vacation.length ?? 0})
+        </Text>
+      </View>
       <View style={[styles.card, { marginBottom: 30 }]}>
         {!data || data.vacation.length === 0 ? (
           <Text style={styles.muted}>Enginn í fríi í dag.</Text>
@@ -231,9 +242,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 9,
     marginBottom: 18,
   },
   mapButtonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  sectionRow: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 8 },
   actionRow: { flexDirection: "row", gap: 10, marginBottom: 18 },
   actionButton: {
     flex: 1,
@@ -243,13 +258,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-  actionIcon: { fontSize: 20 },
   actionText: { fontSize: 12, fontWeight: "600", color: "#334155", textAlign: "center" },
   sectionTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: "#334155",
-    marginBottom: 8,
   },
   card: {
     backgroundColor: "#fff",

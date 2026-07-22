@@ -8,6 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { getCurrentFix } from "@/lib/location";
 import { stopProjectGeofence } from "@/lib/geofence";
@@ -159,8 +160,12 @@ export default function Active() {
         <TouchableOpacity onPress={() => router.replace("/home")}>
           <Text style={styles.topLink}>‹ Heim</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/messages")}>
-          <Text style={styles.topLink}>💬 Skilaboð</Text>
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center", gap: 5 }}
+          onPress={() => router.push("/messages")}
+        >
+          <Ionicons name="chatbubbles" size={17} color="#2563eb" />
+          <Text style={styles.topLink}>Skilaboð</Text>
         </TouchableOpacity>
       </View>
 
@@ -202,7 +207,14 @@ export default function Active() {
       )}
 
       <TouchableOpacity style={styles.checkout} onPress={checkOut} disabled={busy}>
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.checkoutText}>⏹ Skrá út</Text>}
+        {busy ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <>
+            <Ionicons name="stop-circle" size={20} color="#fff" />
+            <Text style={styles.checkoutText}>Skrá út</Text>
+          </>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -235,6 +247,16 @@ const styles = StyleSheet.create({
   warnBox: { backgroundColor: "#fff", borderRadius: 14, padding: 20, alignItems: "center", borderWidth: 1, borderColor: "#fdba74" },
   warnTitle: { fontSize: 18, fontWeight: "700", color: "#ea580c" },
   warnText: { color: "#9a3412", marginTop: 6, textAlign: "center" },
-  checkout: { backgroundColor: "#dc2626", borderRadius: 12, paddingVertical: 16, paddingHorizontal: 60, marginTop: "auto", marginBottom: 24 },
+  checkout: {
+    backgroundColor: "#dc2626",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 60,
+    marginTop: "auto",
+    marginBottom: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   checkoutText: { color: "#fff", fontSize: 18, fontWeight: "700" },
 });

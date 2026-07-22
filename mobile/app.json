@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#2563eb"
+      "backgroundColor": "#1e3a8a"
     },
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -30,6 +30,10 @@
     },
     "android": {
       "package": "is.reir.timaverk",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1e3a8a"
+      },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

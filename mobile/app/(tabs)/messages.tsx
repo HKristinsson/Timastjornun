@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Swipeable } from "react-native-gesture-handler";
 import {
   listInbox,
@@ -151,7 +152,8 @@ export default function Messages() {
   function DeleteAction() {
     return (
       <View style={styles.swipeDelete}>
-        <Text style={styles.swipeText}>🗑 Eyða</Text>
+        <Ionicons name="trash" size={19} color="#fff" />
+        <Text style={styles.swipeText}>Eyða</Text>
       </View>
     );
   }
@@ -159,7 +161,8 @@ export default function Messages() {
   function ReadAction({ read }: { read: boolean }) {
     return (
       <View style={styles.swipeRead}>
-        <Text style={styles.swipeText}>{read ? "● Ólesið" : "✓ Lesið"}</Text>
+        <Ionicons name={read ? "mail-unread" : "mail-open"} size={19} color="#fff" />
+        <Text style={styles.swipeText}>{read ? "Ólesið" : "Lesið"}</Text>
       </View>
     );
   }
@@ -302,13 +305,13 @@ export default function Messages() {
           disabled={selected.length === 0}
           onPress={deleteSelected}
         >
-          <Text style={styles.deleteBarText}>
-            🗑 Eyða völdum ({selected.length})
-          </Text>
+          <Ionicons name="trash" size={17} color="#fff" />
+          <Text style={styles.deleteBarText}>Eyða völdum ({selected.length})</Text>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity style={styles.fab} onPress={() => router.push("/compose")}>
-          <Text style={styles.fabText}>＋ Nýtt skeyti</Text>
+          <Ionicons name="add" size={19} color="#fff" />
+          <Text style={styles.fabText}>Nýtt skeyti</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -334,6 +337,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#dc2626",
     justifyContent: "center",
     alignItems: "center",
+    gap: 3,
     width: 96,
     marginRight: 16,
     marginBottom: 8,
@@ -343,12 +347,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#2563eb",
     justifyContent: "center",
     alignItems: "center",
+    gap: 3,
     width: 96,
     marginLeft: 16,
     marginBottom: 8,
     borderRadius: 14,
   },
-  swipeText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  swipeText: { color: "#fff", fontWeight: "700", fontSize: 12 },
   selectToggle: { color: "#2563eb", fontWeight: "700", fontSize: 14, marginLeft: 8 },
   muted: { color: "#94a3b8", textAlign: "center", marginTop: 40 },
   row: {
@@ -389,6 +394,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingHorizontal: 20,
     paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     elevation: 4,
     shadowColor: "#000",
     shadowOpacity: 0.2,
@@ -405,6 +413,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 7,
     elevation: 4,
     shadowColor: "#000",
     shadowOpacity: 0.2,

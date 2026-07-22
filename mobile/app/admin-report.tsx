@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import {
   sendMessage,
@@ -167,7 +168,7 @@ export default function AdminReport() {
           onPress={() => setProjectId(null)}
         >
           <Text style={[styles.projectText, projectId == null && styles.projectTextActive]}>
-            📋 Öll verk
+            Öll verk
           </Text>
         </TouchableOpacity>
         {projects.map((p) => (
@@ -205,7 +206,10 @@ export default function AdminReport() {
           {busy ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>📧 Senda skýrslu</Text>
+            <>
+              <Ionicons name="send" size={17} color="#fff" />
+              <Text style={styles.buttonText}>Senda skýrslu</Text>
+            </>
           )}
         </TouchableOpacity>
       </View>
@@ -242,6 +246,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
     marginTop: 16,
   },
   buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },

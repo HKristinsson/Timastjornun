@@ -10,6 +10,7 @@ import {
   Image,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import PhotoAnnotator from "@/components/PhotoAnnotator";
 import {
@@ -165,8 +166,9 @@ export default function Compose() {
             style={styles.pickerToggle}
             onPress={() => setShowPicker((v) => !v)}
           >
+            <Ionicons name="people" size={16} color="#334155" />
             <Text style={styles.pickerToggleText}>
-              {showPicker ? "Fela lista" : "👥 Velja af lista samstarfsmanna"}
+              {showPicker ? "Fela lista" : "Velja af lista samstarfsmanna"}
             </Text>
           </TouchableOpacity>
         )}
@@ -261,10 +263,12 @@ export default function Compose() {
         )}
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity style={styles.attachButton} onPress={takePhoto}>
-            <Text style={styles.attachButtonText}>📷 Taka mynd</Text>
+            <Ionicons name="camera" size={16} color="#334155" />
+            <Text style={styles.attachButtonText}>Taka mynd</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.attachButton} onPress={pickPhotos}>
-            <Text style={styles.attachButtonText}>🖼 Velja mynd</Text>
+            <Ionicons name="images" size={16} color="#334155" />
+            <Text style={styles.attachButtonText}>Velja mynd</Text>
           </TouchableOpacity>
         </View>
 
@@ -273,7 +277,8 @@ export default function Compose() {
           disabled={!canSend}
           onPress={send}
         >
-          <Text style={styles.buttonText}>{busy ? progress ?? "Sendi…" : "📤 Senda"}</Text>
+          {!busy && <Ionicons name="send" size={17} color="#fff" />}
+          <Text style={styles.buttonText}>{busy ? progress ?? "Sendi…" : "Senda"}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -309,6 +314,9 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: "#f8fafc",
     marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
   },
   pickerToggleText: { color: "#334155", fontWeight: "600", fontSize: 14 },
   pickerList: {
@@ -366,6 +374,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
     backgroundColor: "#f8fafc",
   },
   attachButtonText: { color: "#334155", fontWeight: "600", fontSize: 14 },
@@ -374,6 +385,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
     marginTop: 20,
   },
   buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },

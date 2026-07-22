@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import { supabase } from "@/lib/supabase";
 import { registerPush } from "@/lib/push";
@@ -192,7 +193,10 @@ export default function Home() {
                 ↳ {active.task_no} {active.task_name}
               </Text>
             )}
-            <Text style={styles.activeTime}>⏱ {sinceText(active.check_in_at)}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 }}>
+              <Ionicons name="time-outline" size={15} color="#fee2e2" />
+              <Text style={styles.activeTime}>{sinceText(active.check_in_at)}</Text>
+            </View>
           </View>
           <Text style={styles.activeChev}>›</Text>
         </TouchableOpacity>
@@ -215,7 +219,10 @@ export default function Home() {
                       {p.project_no} {p.name}
                     </Text>
                     {p.address && <Text style={styles.nearbyAddr}>{p.address}</Text>}
-                    <Text style={styles.nearbyInside}>📍 Innan svæðis</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+                      <Ionicons name="location" size={13} color="#16a34a" />
+                      <Text style={styles.nearbyInside}>Innan svæðis</Text>
+                    </View>
                   </View>
                   <TouchableOpacity
                     style={styles.checkinButton}
@@ -237,7 +244,8 @@ export default function Home() {
             style={styles.allProjects}
             onPress={() => router.push("/projects")}
           >
-            <Text style={styles.allProjectsText}>📋 Sjá öll verkefni</Text>
+            <Ionicons name="list" size={17} color="#2563eb" />
+            <Text style={styles.allProjectsText}>Sjá öll verkefni</Text>
           </TouchableOpacity>
         </>
       )}
@@ -289,7 +297,7 @@ const styles = StyleSheet.create({
   activeTitle: { color: "#fecaca", fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
   activeProject: { color: "#fff", fontSize: 17, fontWeight: "700", marginTop: 2 },
   activeTask: { color: "#fee2e2", fontSize: 14, fontWeight: "600", marginTop: 2 },
-  activeTime: { color: "#fee2e2", fontSize: 14, marginTop: 4 },
+  activeTime: { color: "#fee2e2", fontSize: 14 },
   activeChev: { color: "#fecaca", fontSize: 28 },
   nearbyRow: {
     flexDirection: "row",
@@ -317,6 +325,9 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 14,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
     borderWidth: 1,
     borderColor: "#e2e8f0",
   },

@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, Circle } from "react-native-maps";
 import { supabase } from "@/lib/supabase";
 import { ensureForegroundPermission, getCurrentFix } from "@/lib/location";
@@ -135,7 +136,8 @@ export default function AdminProjectNew() {
           </MapView>
         </View>
         <TouchableOpacity style={styles.myLocation} onPress={useMyLocation}>
-          <Text style={styles.myLocationText}>📍 Nota mína staðsetningu</Text>
+          <Ionicons name="locate" size={16} color="#2563eb" />
+          <Text style={styles.myLocationText}>Nota mína staðsetningu</Text>
         </TouchableOpacity>
 
         <Text style={styles.label}>Radíus verksvæðis (metrar)</Text>
@@ -154,7 +156,10 @@ export default function AdminProjectNew() {
           {busy ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>✓ Stofna verkefni</Text>
+            <>
+              <Ionicons name="checkmark-circle" size={18} color="#fff" />
+              <Text style={styles.buttonText}>Stofna verkefni</Text>
+            </>
           )}
         </TouchableOpacity>
         {!pin && (
@@ -191,6 +196,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 11,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
     backgroundColor: "#f8fafc",
   },
   myLocationText: { color: "#2563eb", fontWeight: "600" },
@@ -199,6 +207,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
     marginTop: 18,
   },
   buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },

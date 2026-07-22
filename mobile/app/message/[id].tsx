@@ -11,6 +11,7 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import PhotoAnnotator from "@/components/PhotoAnnotator";
 import {
@@ -183,7 +184,10 @@ export default function ReadMessage() {
                   style={styles.attFile}
                   onPress={() => a.url && Linking.openURL(a.url)}
                 >
-                  <Text style={styles.attFileName}>📎 {a.filename}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Ionicons name="attach" size={16} color="#2563eb" />
+                    <Text style={styles.attFileName}>{a.filename}</Text>
+                  </View>
                 </TouchableOpacity>
               )
             )}
@@ -242,10 +246,12 @@ export default function ReadMessage() {
           )}
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
             <TouchableOpacity style={styles.attachButton} onPress={takePhoto}>
-              <Text style={styles.attachButtonText}>📷 Taka mynd</Text>
+              <Ionicons name="camera" size={16} color="#334155" />
+              <Text style={styles.attachButtonText}>Taka mynd</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.attachButton} onPress={pickPhotos}>
-              <Text style={styles.attachButtonText}>🖼 Velja mynd</Text>
+              <Ionicons name="images" size={16} color="#334155" />
+              <Text style={styles.attachButtonText}>Velja mynd</Text>
             </TouchableOpacity>
           </View>
 
@@ -265,13 +271,18 @@ export default function ReadMessage() {
       ) : (
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity
-            style={[styles.button, { flex: 1 }]}
+            style={[styles.button, styles.buttonRow, { flex: 1 }]}
             onPress={() => setReplying(true)}
           >
-            <Text style={styles.buttonText}>↩️ Svara</Text>
+            <Ionicons name="arrow-undo" size={17} color="#fff" />
+            <Text style={styles.buttonText}>Svara</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.buttonDanger} onPress={confirmDelete}>
-            <Text style={styles.buttonDangerText}>🗑 Eyða</Text>
+          <TouchableOpacity
+            style={[styles.buttonDanger, styles.buttonRow]}
+            onPress={confirmDelete}
+          >
+            <Ionicons name="trash" size={16} color="#dc2626" />
+            <Text style={styles.buttonDangerText}>Eyða</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -306,6 +317,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   button: { backgroundColor: "#2563eb", borderRadius: 12, paddingVertical: 14, alignItems: "center" },
+  buttonRow: { flexDirection: "row", justifyContent: "center", gap: 7 },
   buttonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   photoRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
   photoWrap: { position: "relative" },
@@ -339,6 +351,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 11,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
     backgroundColor: "#f8fafc",
   },
   attachButtonText: { color: "#334155", fontWeight: "600", fontSize: 13 },

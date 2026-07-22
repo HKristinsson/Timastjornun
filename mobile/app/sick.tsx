@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { registerAbsence, listMyAbsences, type Absence } from "@/lib/mail";
 
 function today(): string {
@@ -72,16 +73,26 @@ export default function Sick() {
             style={[styles.kindTab, kind === "sick" && styles.kindTabActive]}
             onPress={() => setKind("sick")}
           >
+            <Ionicons
+              name="medkit"
+              size={15}
+              color={kind === "sick" ? "#d97706" : "#94a3b8"}
+            />
             <Text style={[styles.kindText, kind === "sick" && styles.kindTextActive]}>
-              🤒 Veikindi
+              Veikindi
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.kindTab, kind === "vacation" && styles.kindTabActive]}
             onPress={() => setKind("vacation")}
           >
+            <Ionicons
+              name="sunny"
+              size={15}
+              color={kind === "vacation" ? "#f59e0b" : "#94a3b8"}
+            />
             <Text style={[styles.kindText, kind === "vacation" && styles.kindTextActive]}>
-              🏖 Sumarfrí
+              Sumarfrí
             </Text>
           </TouchableOpacity>
         </View>
@@ -109,7 +120,7 @@ export default function Sick() {
           onPress={register}
         >
           <Text style={styles.buttonText}>
-            {busy ? "Skrái…" : kind === "sick" ? "🤒 Skrá veikindi" : "🏖 Skrá sumarfrí"}
+            {busy ? "Skrái…" : kind === "sick" ? "Skrá veikindi" : "Skrá sumarfrí"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -120,10 +131,16 @@ export default function Sick() {
       ) : (
         items.map((a) => (
           <View key={a.id} style={styles.rowCard}>
-            <Text style={styles.rowTitle}>
-              {a.type === "vacation" ? "🏖 " : "🤒 "}
-              {a.date_from === a.date_to ? fmt(a.date_from) : `${fmt(a.date_from)} – ${fmt(a.date_to)}`}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+              <Ionicons
+                name={a.type === "vacation" ? "sunny" : "medkit"}
+                size={15}
+                color={a.type === "vacation" ? "#f59e0b" : "#d97706"}
+              />
+              <Text style={styles.rowTitle}>
+                {a.date_from === a.date_to ? fmt(a.date_from) : `${fmt(a.date_from)} – ${fmt(a.date_to)}`}
+              </Text>
+            </View>
             {a.note ? <Text style={styles.rowNote}>{a.note}</Text> : null}
           </View>
         ))
@@ -136,7 +153,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f1f5f9" },
   card: { backgroundColor: "#fff", borderRadius: 14, padding: 16 },
   kindTabs: { flexDirection: "row", backgroundColor: "#e2e8f0", borderRadius: 12, padding: 4 },
-  kindTab: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: "center" },
+  kindTab: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+  },
   kindTabActive: { backgroundColor: "#fff" },
   kindText: { fontWeight: "600", color: "#64748b" },
   kindTextActive: { color: "#0f172a" },
