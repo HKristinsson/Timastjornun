@@ -75,6 +75,7 @@ export default function AdminEmployees() {
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editPassword, setEditPassword] = useState("");
+  const [editAdmin, setEditAdmin] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -103,36 +104,6 @@ export default function AdminEmployees() {
       load();
     }, [load])
   );
-
-  async function toggleAdmin(e: EmployeeRow) {
-    const next = !e.is_admin;
-    if (next) {
-      const ok = await new Promise<boolean>((resolve) =>
-        Alert.alert(
-          "Gera að stjórnanda",
-          `${e.full_name} fær full stjórnandaréttindi: starfsmenn, verkefni, tíma, kort og samþykktir.`,
-          [
-            { text: "Hætta við", style: "cancel", onPress: () => resolve(false) },
-            { text: "Gera að stjórnanda", onPress: () => resolve(true) },
-          ]
-        )
-      );
-      if (!ok) return;
-    }
-    const { error } = await supabase.rpc("employee_set_admin", {
-      p_employee_id: e.employee_id,
-      p_admin: next,
-    });
-    if (error) {
-      Alert.alert("Villa", translateError(error.message));
-      return;
-    }
-    setEmployees((arr) =>
-      arr.map((x) =>
-        x.employee_id === e.employee_id ? { ...x, is_admin: next } : x
-      )
-    );
-  }
 
   const fullEmail = domain
     ? `${emailUser.trim().toLowerCase()}@${domain}`
@@ -187,6 +158,7 @@ export default function AdminEmployees() {
     setEditFor(e);
     setEditName(e.full_name);
     setEditPassword("");
+    setEditAdmin(e.is_admin);
     // Núverandi sími forfylltur svo hann glatist ekki við vistun
     const { data } = await supabase
       .from("employees")
@@ -215,6 +187,13 @@ export default function AdminEmployees() {
         const { error } = await supabase.rpc("set_employee_password", {
           p_employee_id: editFor.employee_id,
           p_password: editPassword,
+        });
+        if (error) throw new Error(error.message);
+      }
+      if (editAdmin !== editFor.is_admin) {
+        const { error } = await supabase.rpc("employee_set_admin", {
+          p_employee_id: editFor.employee_id,
+          p_admin: editAdmin,
         });
         if (error) throw new Error(error.message);
       }
@@ -392,20 +371,13 @@ export default function AdminEmployees() {
               <TouchableOpacity onPress={() => openEdit(e)} style={styles.editButton}>
                 <Ionicons name="pencil-outline" size={17} color="#2563eb" />
               </TouchableOpacity>
-              <Switch
-                value={e.is_admin}
-                onValueChange={() => toggleAdmin(e)}
-                disabled={!e.has_login}
-                trackColor={{ true: "#2563eb", false: "#cbd5e1" }}
-              />
             </View>
           ))
         )}
       </View>
       <Text style={styles.hint}>
-        Ýttu á starfsmann til að sjá ferðir hans á korti, blýantinn til að
-        breyta (nafn, sími, lykilorð). Rofinn gerir starfsmann að stjórnanda —
-        starfsmenn án innskráningar þurfa netfang og lykilorð fyrst.
+        Ýttu á starfsmann til að sjá ferðir hans á korti — blýantinn til að
+        breyta skráningu hans (nafn, sími, lykilorð, stjórnandaréttindi).
       </Text>
 
       {/* Breyta starfsmanni */}
@@ -438,6 +410,21 @@ export default function AdminEmployees() {
               placeholder="A.m.k. 6 stafir"
               style={styles.input}
             />
+
+            <View style={styles.adminRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.adminTitle}>Stjórnandi félagsins</Text>
+                <Text style={styles.adminSub}>
+                  Fær Stjórnun í appinu og fullt stjórnborð á vefnum.
+                </Text>
+              </View>
+              <Switch
+                value={editAdmin}
+                onValueChange={setEditAdmin}
+                disabled={!editFor?.has_login}
+                trackColor={{ true: "#2563eb", false: "#cbd5e1" }}
+              />
+            </View>
 
             <TouchableOpacity
               style={[styles.button, editBusy && styles.disabled]}

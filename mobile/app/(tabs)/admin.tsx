@@ -160,10 +160,10 @@ export default function AdminOverview() {
       <View style={styles.actionRow}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => router.push("/admin-project-new")}
+          onPress={() => router.push("/admin-projects")}
         >
-          <ThemeIcon name="add-circle-outline" size={42} />
-          <Text style={styles.actionText}>Stofna verkefni</Text>
+          <ThemeIcon name="briefcase-outline" size={42} />
+          <Text style={styles.actionText}>Verkefni</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}

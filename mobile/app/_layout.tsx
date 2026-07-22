@@ -18,6 +18,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="active" />
         <Stack.Screen name="admin-map" />
+        <Stack.Screen name="admin-projects" options={{ headerShown: true, title: "Verkefnaumsjón" }} />
         <Stack.Screen name="admin-project-new" options={{ headerShown: true, title: "Stofna verkefni" }} />
         <Stack.Screen name="admin-employees" options={{ headerShown: true, title: "Starfsmenn" }} />
         <Stack.Screen name="admin-track" options={{ headerShown: true, title: "Ferðir starfsmanns" }} />
