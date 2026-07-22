@@ -26,6 +26,7 @@ import {
 import { startProjectGeofence } from "@/lib/geofence";
 import { startTracking, stopTracking } from "@/lib/tracking";
 import TaskPicker, { type ProjectTask } from "@/components/TaskPicker";
+import ThemeIcon from "@/components/ThemeIcon";
 
 interface ActiveEntry {
   id: string;
@@ -224,7 +225,7 @@ export default function Projects() {
           )}
 
           <TouchableOpacity style={styles.sickRow} onPress={() => router.push("/sick")}>
-            <Ionicons name="medkit" size={20} color="#d97706" />
+            <ThemeIcon name="medkit-outline" size={40} />
             <View style={{ flex: 1 }}>
               <Text style={styles.sickTitle}>Skrá veikindi eða frí</Text>
               <Text style={styles.sickSub}>Tilkynna veikinda- eða frídaga til verkstjóra</Text>

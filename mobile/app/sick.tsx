@@ -11,6 +11,7 @@ import {
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { registerAbsence, listMyAbsences, type Absence } from "@/lib/mail";
+import ThemeIcon from "@/components/ThemeIcon";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
@@ -74,9 +75,9 @@ export default function Sick() {
             onPress={() => setKind("sick")}
           >
             <Ionicons
-              name="medkit"
+              name="medkit-outline"
               size={15}
-              color={kind === "sick" ? "#d97706" : "#94a3b8"}
+              color={kind === "sick" ? "#2563eb" : "#94a3b8"}
             />
             <Text style={[styles.kindText, kind === "sick" && styles.kindTextActive]}>
               Veikindi
@@ -87,9 +88,9 @@ export default function Sick() {
             onPress={() => setKind("vacation")}
           >
             <Ionicons
-              name="sunny"
+              name="sunny-outline"
               size={15}
-              color={kind === "vacation" ? "#f59e0b" : "#94a3b8"}
+              color={kind === "vacation" ? "#2563eb" : "#94a3b8"}
             />
             <Text style={[styles.kindText, kind === "vacation" && styles.kindTextActive]}>
               Sumarfrí
@@ -131,11 +132,10 @@ export default function Sick() {
       ) : (
         items.map((a) => (
           <View key={a.id} style={styles.rowCard}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
-              <Ionicons
-                name={a.type === "vacation" ? "sunny" : "medkit"}
-                size={15}
-                color={a.type === "vacation" ? "#f59e0b" : "#d97706"}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
+              <ThemeIcon
+                name={a.type === "vacation" ? "sunny-outline" : "medkit-outline"}
+                size={28}
               />
               <Text style={styles.rowTitle}>
                 {a.date_from === a.date_to ? fmt(a.date_from) : `${fmt(a.date_from)} – ${fmt(a.date_to)}`}

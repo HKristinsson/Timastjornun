@@ -15,6 +15,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { employeePhotoUrl } from "@/lib/mail";
+import ThemeIcon from "@/components/ThemeIcon";
 
 interface OverviewPerson {
   employee_id: string;
@@ -131,27 +132,27 @@ export default function AdminOverview() {
           style={styles.actionButton}
           onPress={() => router.push("/admin-project-new")}
         >
-          <Ionicons name="add-circle" size={22} color="#16a34a" />
+          <ThemeIcon name="add-circle-outline" size={42} />
           <Text style={styles.actionText}>Stofna verkefni</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => router.push("/admin-times")}
         >
-          <Ionicons name="time" size={22} color="#2563eb" />
+          <ThemeIcon name="time-outline" size={42} />
           <Text style={styles.actionText}>Tímaskráningar</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => router.push("/admin-report")}
         >
-          <Ionicons name="mail" size={22} color="#7c3aed" />
+          <ThemeIcon name="mail-outline" size={42} />
           <Text style={styles.actionText}>Senda skýrslu</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.sectionRow}>
-        <Ionicons name="ellipse" size={11} color="#16a34a" />
+        <ThemeIcon name="person-outline" size={28} />
         <Text style={styles.sectionTitle}>
           Innskráðir núna ({data?.checked_in.length ?? 0})
         </Text>
@@ -179,7 +180,7 @@ export default function AdminOverview() {
       </View>
 
       <View style={styles.sectionRow}>
-        <Ionicons name="medkit" size={14} color="#d97706" />
+        <ThemeIcon name="medkit-outline" size={28} />
         <Text style={styles.sectionTitle}>Veikir í dag ({data?.sick.length ?? 0})</Text>
       </View>
       <View style={styles.card}>
@@ -204,7 +205,7 @@ export default function AdminOverview() {
       </View>
 
       <View style={styles.sectionRow}>
-        <Ionicons name="sunny" size={14} color="#f59e0b" />
+        <ThemeIcon name="sunny-outline" size={28} />
         <Text style={styles.sectionTitle}>
           Í sumarfríi í dag ({data?.vacation.length ?? 0})
         </Text>
