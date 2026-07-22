@@ -20,6 +20,7 @@ export default function RootLayout() {
         <Stack.Screen name="admin-map" />
         <Stack.Screen name="admin-project-new" options={{ headerShown: true, title: "Stofna verkefni" }} />
         <Stack.Screen name="admin-employees" options={{ headerShown: true, title: "Starfsmenn" }} />
+        <Stack.Screen name="admin-track" options={{ headerShown: true, title: "Ferðir starfsmanns" }} />
         <Stack.Screen name="admin-times" options={{ headerShown: true, title: "Tímaskráningar" }} />
         <Stack.Screen name="admin-report" options={{ headerShown: true, title: "Senda tímaskýrslu" }} />
         <Stack.Screen name="message/[id]" options={{ headerShown: true, title: "Skeyti" }} />

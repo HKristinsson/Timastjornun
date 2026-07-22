@@ -14,7 +14,8 @@ import {
   Image,
   RefreshControl,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { employeePhotoUrl } from "@/lib/mail";
 import ThemeIcon from "@/components/ThemeIcon";
@@ -52,6 +53,7 @@ function translateError(msg: string): string {
 }
 
 export default function AdminEmployees() {
+  const router = useRouter();
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const [photos, setPhotos] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
@@ -59,13 +61,19 @@ export default function AdminEmployees() {
 
   // Nýr starfsmaður
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [nationalId, setNationalId] = useState("");
+  const [emailUser, setEmailUser] = useState("");
+  const [domain, setDomain] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [makeAdmin, setMakeAdmin] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
+    // Lén félagsins: netfang starfsmanns verður notandanafn@lén
+    supabase
+      .rpc("my_company_domain")
+      .then(({ data }) => setDomain((data as string | null) ?? null));
     const { data, error } = await supabase.rpc("employee_list_admin");
     setLoading(false);
     if (error) return;
@@ -118,15 +126,20 @@ export default function AdminEmployees() {
     );
   }
 
+  const fullEmail = domain
+    ? `${emailUser.trim().toLowerCase()}@${domain}`
+    : emailUser.trim().toLowerCase();
+
   async function create() {
     setBusy(true);
     try {
+      const kt = nationalId.replace(/\D/g, "");
       const { data: emp, error } = await supabase.rpc("create_employee_with_login", {
         p_full_name: fullName.trim(),
-        p_employee_no: null,
+        p_employee_no: kt || null, // kennitala er starfsmannanúmerið
         p_phone: phone.trim() || null,
-        p_email: email.trim().toLowerCase(),
-        p_national_id: null,
+        p_email: fullEmail,
+        p_national_id: kt || null,
         p_password: password,
       });
       if (error) throw new Error(error.message);
@@ -145,10 +158,11 @@ export default function AdminEmployees() {
       }
       Alert.alert(
         "Stofnað",
-        `${fullName.trim()} getur nú skráð sig inn með ${email.trim().toLowerCase()}.`
+        `${fullName.trim()} getur nú skráð sig inn með ${fullEmail}.`
       );
       setFullName("");
-      setEmail("");
+      setNationalId("");
+      setEmailUser("");
       setPhone("");
       setPassword("");
       setMakeAdmin(false);
@@ -164,7 +178,8 @@ export default function AdminEmployees() {
   const canCreate =
     !busy &&
     fullName.trim().length > 1 &&
-    email.includes("@") &&
+    nationalId.replace(/\D/g, "").length === 10 &&
+    (domain ? emailUser.trim().length > 0 : emailUser.includes("@")) &&
     password.length >= 8;
 
   return (
@@ -183,15 +198,40 @@ export default function AdminEmployees() {
           <Text style={styles.label}>Fullt nafn</Text>
           <TextInput value={fullName} onChangeText={setFullName} style={styles.input} />
 
-          <Text style={styles.label}>Netfang (verður innskráning)</Text>
+          <Text style={styles.label}>Kennitala (verður starfsmannanúmer)</Text>
           <TextInput
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="nafn@lén-félagsins.is"
+            value={nationalId}
+            onChangeText={setNationalId}
+            keyboardType="number-pad"
+            placeholder="0000000000"
+            maxLength={11}
             style={styles.input}
           />
+
+          <Text style={styles.label}>Netfang (verður innskráning)</Text>
+          {domain ? (
+            <View style={styles.emailRow}>
+              <TextInput
+                value={emailUser}
+                onChangeText={setEmailUser}
+                autoCapitalize="none"
+                placeholder="notandanafn"
+                style={[styles.input, { flex: 1 }]}
+              />
+              <View style={styles.domainBox}>
+                <Text style={styles.domainText}>@{domain}</Text>
+              </View>
+            </View>
+          ) : (
+            <TextInput
+              value={emailUser}
+              onChangeText={setEmailUser}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder="nafn@daemi.is"
+              style={styles.input}
+            />
+          )}
 
           <Text style={styles.label}>Símanúmer (valfrjálst)</Text>
           <TextInput
@@ -255,29 +295,42 @@ export default function AdminEmployees() {
         ) : (
           employees.map((e, i) => (
             <View key={e.employee_id} style={[styles.row, i > 0 && styles.rowBorder]}>
-              {photos[e.employee_id] ? (
-                <Image source={{ uri: photos[e.employee_id]! }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarFallback]}>
-                  <Text style={styles.avatarText}>{initials(e.full_name)}</Text>
+              <TouchableOpacity
+                style={styles.rowBody}
+                onPress={() =>
+                  router.push({
+                    pathname: "/admin-track",
+                    params: { id: e.employee_id, name: e.full_name },
+                  })
+                }
+              >
+                {photos[e.employee_id] ? (
+                  <Image source={{ uri: photos[e.employee_id]! }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarFallback]}>
+                    <Text style={styles.avatarText}>{initials(e.full_name)}</Text>
+                  </View>
+                )}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={styles.name} numberOfLines={1}>
+                      {e.full_name}
+                    </Text>
+                    {e.is_admin && (
+                      <View style={styles.adminBadge}>
+                        <Text style={styles.adminBadgeText}>Admin</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Text style={styles.sub} numberOfLines={1}>
+                      {e.email ?? "Ekkert netfang"}
+                      {e.status !== "active" ? " · óvirkur" : ""}
+                    </Text>
+                    <Ionicons name="footsteps-outline" size={12} color="#94a3b8" />
+                  </View>
                 </View>
-              )}
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={styles.name} numberOfLines={1}>
-                    {e.full_name}
-                  </Text>
-                  {e.is_admin && (
-                    <View style={styles.adminBadge}>
-                      <Text style={styles.adminBadgeText}>Admin</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.sub} numberOfLines={1}>
-                  {e.email ?? "Ekkert netfang"}
-                  {e.status !== "active" ? " · óvirkur" : ""}
-                </Text>
-              </View>
+              </TouchableOpacity>
               <Switch
                 value={e.is_admin}
                 onValueChange={() => toggleAdmin(e)}
@@ -289,7 +342,8 @@ export default function AdminEmployees() {
         )}
       </View>
       <Text style={styles.hint}>
-        Rofinn gerir starfsmann að stjórnanda (eða afturkallar). Starfsmenn án
+        Ýttu á starfsmann til að sjá ferðir hans á korti. Rofinn gerir
+        starfsmann að stjórnanda (eða afturkallar) — starfsmenn án
         innskráningar þurfa netfang og lykilorð fyrst.
       </Text>
     </ScrollView>
@@ -314,6 +368,14 @@ const styles = StyleSheet.create({
   createHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 4 },
   createTitle: { fontSize: 17, fontWeight: "700", color: "#0f172a" },
   label: { fontWeight: "600", color: "#334155", marginBottom: 6, marginTop: 12 },
+  emailRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  domainBox: {
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    paddingVertical: 13,
+    paddingHorizontal: 12,
+  },
+  domainText: { color: "#2563eb", fontWeight: "700", fontSize: 14 },
   input: {
     borderWidth: 1,
     borderColor: "#e2e8f0",
@@ -348,6 +410,7 @@ const styles = StyleSheet.create({
   cancelText: { color: "#64748b", fontWeight: "600" },
   sectionTitle: { fontSize: 14, fontWeight: "700", color: "#334155", marginBottom: 8 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 9 },
+  rowBody: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12, minWidth: 0 },
   rowBorder: { borderTopWidth: 1, borderTopColor: "#f1f5f9" },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#e2e8f0" },
   avatarFallback: {
