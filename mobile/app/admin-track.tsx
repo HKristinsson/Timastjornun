@@ -28,6 +28,8 @@ interface Stop {
   from: string;
   to: string;
   minutes: number;
+  place_kind: string | null;
+  place_name: string | null;
 }
 
 function isoDate(d: Date): string {
@@ -133,7 +135,7 @@ export default function AdminTrack() {
             <Marker
               key={i}
               coordinate={{ latitude: s.lat, longitude: s.lng }}
-              title={`Stopp ${i + 1}`}
+              title={s.place_name ?? `Stopp ${i + 1}`}
               description={`${timeStr(s.from)}–${timeStr(s.to)} · ${fmtDuration(s.minutes)}`}
             >
               <View style={styles.stopMarker}>
@@ -172,9 +174,22 @@ export default function AdminTrack() {
                   <Text style={styles.stopTime}>
                     {timeStr(s.from)} – {timeStr(s.to)}
                   </Text>
-                  <Text style={styles.stopCoords}>
-                    {s.lat.toFixed(5)}, {s.lng.toFixed(5)}
-                  </Text>
+                  {s.place_name ? (
+                    <Text
+                      style={[
+                        styles.stopPlace,
+                        s.place_kind === "project" && { color: "#16a34a" },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {s.place_kind === "project" ? "🔧 " : "📍 "}
+                      {s.place_name}
+                    </Text>
+                  ) : (
+                    <Text style={styles.stopCoords}>
+                      Óskráður staður · {s.lat.toFixed(5)}, {s.lng.toFixed(5)}
+                    </Text>
+                  )}
                 </View>
                 <Text style={styles.stopDuration}>{fmtDuration(s.minutes)}</Text>
               </View>
@@ -264,5 +279,6 @@ const styles = StyleSheet.create({
   stopNumText: { color: "#fff", fontWeight: "800", fontSize: 12 },
   stopTime: { fontSize: 15, fontWeight: "600", color: "#0f172a" },
   stopCoords: { fontSize: 12, color: "#94a3b8", marginTop: 1 },
+  stopPlace: { fontSize: 13, color: "#f59e0b", fontWeight: "600", marginTop: 1 },
   stopDuration: { fontSize: 14, fontWeight: "700", color: "#2563eb" },
 });

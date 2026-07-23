@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Circle } from "react-native-maps";
 import { supabase } from "@/lib/supabase";
 import { employeePhotoUrl } from "@/lib/mail";
 
@@ -31,6 +31,14 @@ interface Loc {
 
 const REFRESH_MS = 60_000;
 
+interface MapPlace {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  radius_m: number;
+}
+
 function initials(name: string): string {
   return name
     .split(" ")
@@ -48,6 +56,15 @@ export default function AdminMap() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Loc | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [mapPlaces, setMapPlaces] = useState<MapPlace[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("v_places")
+      .select("id, name, lat, lng, radius_m")
+      .eq("active", true)
+      .then(({ data }) => setMapPlaces((data as MapPlace[]) ?? []));
+  }, []);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("employee_locations");
@@ -95,6 +112,24 @@ export default function AdminMap() {
         }}
         onPress={() => setSelected(null)}
       >
+        {mapPlaces.map((p) => (
+          <Circle
+            key={`c-${p.id}`}
+            center={{ latitude: p.lat, longitude: p.lng }}
+            radius={p.radius_m}
+            strokeColor="#f59e0b"
+            fillColor="rgba(245,158,11,0.12)"
+          />
+        ))}
+        {mapPlaces.map((p) => (
+          <Marker
+            key={`m-${p.id}`}
+            coordinate={{ latitude: p.lat, longitude: p.lng }}
+            title={p.name}
+            pinColor="#f59e0b"
+            opacity={0.85}
+          />
+        ))}
         {locs.map((l) => (
           <Marker
             key={l.employee_id}

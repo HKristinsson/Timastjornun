@@ -186,6 +186,20 @@ export default function AdminOverview() {
           <ThemeIcon name="people-outline" size={42} />
           <Text style={styles.actionText}>Starfsmenn</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push("/admin-places")}
+        >
+          <ThemeIcon name="location-outline" size={42} />
+          <Text style={styles.actionText}>Staðir</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => router.push("/admin-travel-report")}
+        >
+          <ThemeIcon name="analytics-outline" size={42} />
+          <Text style={styles.actionText}>Ferðaskýrsla</Text>
+        </TouchableOpacity>
       </View>
 
       {data && (data.pending_absences ?? []).length > 0 && (
