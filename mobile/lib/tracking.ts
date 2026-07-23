@@ -7,7 +7,10 @@ import * as TaskManager from "expo-task-manager";
 import * as Location from "expo-location";
 import { supabase } from "./supabase";
 
-export const TRACKING_TASK = "timaverk-location-tracking";
+// v2: hærri nákvæmni + þéttari punktar svo ferðir milli staða sjáist á korti.
+// (Nýtt verk-heiti svo eldri uppsetningar skipti sjálfkrafa yfir í nýju stillingarnar.)
+export const TRACKING_TASK = "timaverk-location-tracking-v2";
+const LEGACY_TASK = "timaverk-location-tracking";
 
 interface TrackingData {
   locations: Location.LocationObject[];
@@ -53,19 +56,29 @@ TaskManager.defineTask(TRACKING_TASK, async ({ data, error }) => {
 
 export async function startTracking(): Promise<void> {
   try {
+    // Stöðva gamla verkið (v1) ef það er enn í gangi frá eldri uppsetningu
+    const legacy = await Location.hasStartedLocationUpdatesAsync(LEGACY_TASK).catch(
+      () => false
+    );
+    if (legacy) await Location.stopLocationUpdatesAsync(LEGACY_TASK).catch(() => {});
+
     const started = await Location.hasStartedLocationUpdatesAsync(
       TRACKING_TASK
     ).catch(() => false);
     if (started) return;
     await Location.startLocationUpdatesAsync(TRACKING_TASK, {
-      accuracy: Location.Accuracy.Balanced,
-      timeInterval: 60_000,      // ~1 mín milli punkta
-      distanceInterval: 50,      // eða 50 m hreyfing
+      // Há nákvæmni + punktur á ~25 m fresti á ferð svo leiðin teiknist á korti.
+      // Kyrrstaða skilar engum punktum (sparar rafhlöðu) — bakendinn brúar
+      // bilið og reiknar viðverutímann á staðnum út frá komu- og brottfararpunktum.
+      accuracy: Location.Accuracy.High,
+      timeInterval: 30_000,      // Android: að hámarki 30 sek milli punkta
+      distanceInterval: 25,      // punktur við 25 m hreyfingu
+      activityType: Location.ActivityType.AutomotiveNavigation,
       pausesUpdatesAutomatically: false,
       showsBackgroundLocationIndicator: true,
       foregroundService: {
         notificationTitle: "Tímaverk",
-        notificationBody: "Tímaskráning í gangi — staðsetning virk",
+        notificationBody: "Vinnutími — staðsetning virk",
       },
     });
   } catch {
@@ -75,10 +88,12 @@ export async function startTracking(): Promise<void> {
 
 export async function stopTracking(): Promise<void> {
   try {
-    const started = await Location.hasStartedLocationUpdatesAsync(
-      TRACKING_TASK
-    ).catch(() => false);
-    if (started) await Location.stopLocationUpdatesAsync(TRACKING_TASK);
+    for (const task of [TRACKING_TASK, LEGACY_TASK]) {
+      const started = await Location.hasStartedLocationUpdatesAsync(task).catch(
+        () => false
+      );
+      if (started) await Location.stopLocationUpdatesAsync(task).catch(() => {});
+    }
   } catch {
     // ekkert að stöðva
   }
